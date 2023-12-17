@@ -1,4 +1,4 @@
-package fileStore_gin_micro
+package user
 
 import "github.com/gin-gonic/gin"
 
