@@ -1,0 +1,15 @@
+package fileStore_gin_micro
+
+import "github.com/gin-gonic/gin"
+
+func main() {
+	r := gin.Default()
+
+	r.GET("/", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"message": "Hello, world!",
+		})
+	})
+
+	r.Run() // 启动 HTTP 服务器
+}
