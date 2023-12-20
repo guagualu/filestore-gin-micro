@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package fileStore.service.user;
+//查找位置 产生的包名
+option go_package = "depart/user/proto;pb";
+
+//protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative  depart/user/proto/*.proto
+service UserService {
+  // 获取用户信息
+  rpc UserInfo(ReqUserInfo) returns (RespUserInfo) {}
+}
+
+message ReqUserInfo {
+  string uuid = 1;
+}
+
+message RespUserInfo {
+  int32 id = 1;
+  string uuid = 2;
+  string nickName = 3;
+  string email = 4;
+  string password = 5;
+  string mobile = 6;
+}
+

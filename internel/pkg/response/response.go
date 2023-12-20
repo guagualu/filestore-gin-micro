@@ -6,16 +6,16 @@ import (
 )
 
 type Response struct {
-	code int         `json:"code"` //在json转换中的字段名
-	msg  string      `json:"msg"`
-	data interface{} `json:"data"`
+	Code int         `json:"code"` //在json转换中的字段名
+	Msg  string      `json:"msg"`
+	Data interface{} `json:"data"`
 }
 
 func NewRespone(code int, msg string, data interface{}) Response {
 	return Response{
-		code: code,
-		msg:  msg,
-		data: data,
+		Code: code,
+		Msg:  msg,
+		Data: data,
 	}
 }
 

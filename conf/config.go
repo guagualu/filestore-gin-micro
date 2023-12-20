@@ -1,6 +1,7 @@
 package conf
 
 import (
+	"fileStore/internel/domain"
 	"github.com/spf13/viper"
 	"sync"
 	"time"
@@ -25,9 +26,9 @@ var once sync.Once
 var config Conf
 
 func init() {
-	viper.SetConfigName("config") // 配置文件名
+	viper.SetConfigName("Config") // 配置文件名
 	viper.SetConfigType("yaml")   // 配置文件类型
-	viper.AddConfigPath(".")      // 配置文件路径
+	viper.AddConfigPath("./conf") // 配置文件路径
 
 	err := viper.ReadInConfig() // 读取配置文件
 	if err != nil {
@@ -37,9 +38,13 @@ func init() {
 }
 
 func GetConfig() Conf {
+	dbResourceKey := ""
 	//懒汉单例法
+	if domain.ServiceName == "user" {
+		dbResourceKey = "mysql.user-resource"
+	}
 	once.Do(func() {
-		config = Conf{DbConfig: struct{ Resource string }{Resource: viper.GetString("mysql.resource")},
+		config = Conf{DbConfig: struct{ Resource string }{Resource: viper.GetString(dbResourceKey)},
 			RedisConfig: struct {
 				Addr         string
 				Db           int

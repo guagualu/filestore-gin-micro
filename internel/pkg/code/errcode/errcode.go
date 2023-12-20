@@ -5,6 +5,9 @@ import "fmt"
 const (
 	Database_err = 1000001 + iota
 	Faild
+	ValidationFaild
+	NotFoundUser
+	TokenIsErr
 )
 
 type withCode struct {

@@ -7,24 +7,22 @@ import (
 )
 
 type Claims struct { //载荷
-	username string
-	password string
+	UserUuid string
 	jwt.StandardClaims
 }
 
 var jwtpwd = "thegua"
 
-func Getjwtpwd() string {
-	return jwtpwd
+func Getjwtpwd() []byte {
+	return []byte(jwtpwd)
 }
 
-func GenerateToken(username string, password string) (string, error) {
+func GenerateToken(userUuid string) (string, error) {
 	Claims := Claims{
-		username: username,
-		password: password,
+		UserUuid: userUuid,
 		StandardClaims: jwt.StandardClaims{ //可以直接使用包含的结构
-			ExpiresAt: 60 * 60 * 5,
-			Issuer:    "gua",
+			//ExpiresAt: 60 * 60 * 5 * 10,
+			Issuer: "gua",
 		},
 	}
 
@@ -37,16 +35,16 @@ func GenerateToken(username string, password string) (string, error) {
 	return tokenstring, nil
 }
 
-func ParseToken(tokenstring string) (string, string, error) {
-	token, err := jwt.ParseWithClaims(tokenstring, Claims{}, func(t *jwt.Token) (interface{}, error) {
+func ParseToken(tokenstring string) (string, error) {
+	token, err := jwt.ParseWithClaims(tokenstring, &Claims{}, func(t *jwt.Token) (interface{}, error) {
 		return Getjwtpwd(), nil
 	})
 	if err != nil {
 		fmt.Println("token parse err:", err)
-		return "", "", err
+		return "", err
 	}
 	if claims, ok := token.Claims.(Claims); ok && token.Valid { //ok 是指interface转化成功 token.valid 是token自身带的属性 可以用于判断是否过期
-		return claims.username, claims.password, nil
+		return claims.UserUuid, nil
 	}
-	return "", "", err
+	return "", err
 }
