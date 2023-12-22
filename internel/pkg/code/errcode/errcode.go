@@ -8,6 +8,8 @@ const (
 	ValidationFaild
 	NotFoundUser
 	TokenIsErr
+	FileGetFail
+	FileStoreFail
 )
 
 type withCode struct {

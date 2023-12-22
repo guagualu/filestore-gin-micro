@@ -20,6 +20,11 @@ type Conf struct {
 		WriteTimeout time.Duration
 		DialTimeout  time.Duration
 	}
+	LocalStore          string
+	UserServiceName     string
+	FileServiceName     string
+	UserFileServiceName string
+	DtmServer           string
 }
 
 var once sync.Once
@@ -42,6 +47,10 @@ func GetConfig() Conf {
 	//懒汉单例法
 	if domain.ServiceName == "user" {
 		dbResourceKey = "mysql.user-resource"
+	} else if domain.ServiceName == "file" {
+		dbResourceKey = "mysql.file-resource"
+	} else if domain.ServiceName == "user-file" {
+		dbResourceKey = "mysql.user-file-resource"
 	}
 	once.Do(func() {
 		config = Conf{DbConfig: struct{ Resource string }{Resource: viper.GetString(dbResourceKey)},
@@ -54,6 +63,11 @@ func GetConfig() Conf {
 				WriteTimeout time.Duration
 				DialTimeout  time.Duration
 			}{Addr: viper.GetString("redis.addr"), Db: viper.GetInt("redis.db"), Username: viper.GetString("redis.username"), Password: viper.GetString("redis.password"), ReadTimeout: viper.GetDuration("redis.read_timeout"), WriteTimeout: viper.GetDuration("redis.write_timeout"), DialTimeout: viper.GetDuration("redis.dial_timeout")},
+			LocalStore:          viper.GetString("local-store"),
+			UserFileServiceName: viper.GetString("user-file-service-name"),
+			UserServiceName:     viper.GetString("user-service-name"),
+			FileServiceName:     viper.GetString("file-service-name"),
+			DtmServer:           viper.GetString("dtmServer"),
 		}
 	})
 	return config

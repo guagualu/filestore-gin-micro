@@ -61,7 +61,8 @@ func NewDB(conf conf.Conf) *gorm.DB {
 		panic("failed to connect database")
 	}
 	if err = db.AutoMigrate(
-		User{},
+		//User{},
+		File{},
 	); nil != err {
 		panic("failed auto migrate")
 	}

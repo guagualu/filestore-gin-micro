@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package fileProto;
+//查找位置 产生的包名
+option go_package = "depart/file/proto;pb";
+import "google/protobuf/empty.proto";
+//protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative  depart/file/proto/*.proto
+service FileService {
+  // 保存文件
+  rpc SaveFile(FileReq) returns (google.protobuf.Empty) {}
+  // 删除文件
+  rpc DeleteFile(FileReq) returns (google.protobuf.Empty) {}
+}
+
+message FileReq {
+  string file_hash = 1;
+  string file_name = 2;
+  int64  file_size =3;
+  string locatedAt =4;
+}
+
+
+
+

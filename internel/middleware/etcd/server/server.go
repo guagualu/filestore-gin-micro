@@ -101,7 +101,7 @@ func (s *ServiceRegister) ListenLeaseRespChan() {
 				fmt.Println("租约已经失效了")
 			} else { // 每秒会续租一次, 所以就会受到一次应答
 				// s.logger.Fatal("续约成功")
-				fmt.Println("收到自动续租应答:", keepResp.ID)
+				//fmt.Println("收到自动续租应答:", keepResp.ID)
 			}
 		}
 	}
