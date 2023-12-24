@@ -15,3 +15,10 @@ user-service-name : user-server
 file-service-name : file-server
 user-file-service-name : user-file-server
 dtmServer : 127.0.0.1:36790
+mqAddr : amqp://gua:meixi253@47.109.159.227:5672/
+mqUploadExchangeName : filestore-oss
+mqUploadQueue : filestore-channel-oss
+mqUploadKey : oss
+ossEndpoint : oss-cn-chengdu.aliyuncs.com
+ossAccessKeyId : LTAI5tPDgNhMFBo2BSvEdEcr
+ossAccessKeySecret : 8ixhBPsARwQtljRN4LcdaZu9IXlMbg

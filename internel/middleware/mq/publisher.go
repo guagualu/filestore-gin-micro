@@ -1,6 +1,7 @@
 package mq
 
 import (
+	"fileStore/conf"
 	"fmt"
 
 	"github.com/streadway/amqp"
@@ -19,9 +20,9 @@ type MqFileInfo struct {
 
 func init() {
 	var err error
-
+	config := conf.GetConfig()
 	//1、获取mq连接
-	Rabconn, err = amqp.Dial("amqp://gua:meixi253@47.109.159.227:5672/")
+	Rabconn, err = amqp.Dial(config.MqAddr)
 	if err != nil {
 		fmt.Println("rabconn dail err:", err)
 		return
@@ -37,9 +38,10 @@ func init() {
 
 func Rabpublish(routekey, msg string) {
 	//如果在web控制台创建了exchange 1可以不用  发布端只负责发布到交换机
+	config := conf.GetConfig()
 	//1、先定义出exchange
 	err := rabchannel.ExchangeDeclare( //??? 属性细看
-		"filestore-oss",
+		config.MqUploadExchangeName,
 		"direct", //路由类型
 		true,     //是否持久化
 		false,    //是否丢失自动删除
@@ -57,7 +59,7 @@ func Rabpublish(routekey, msg string) {
 
 	//4、publish
 	err = rabchannel.Publish(
-		"filestore-oss",
+		config.MqUploadExchangeName,
 		routekey,
 		true,  //如果为 ture 如果无法找到符合条件的队列 那么返回信息给发送者
 		false, //不起作用？

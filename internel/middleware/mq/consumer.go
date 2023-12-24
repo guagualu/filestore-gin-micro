@@ -1,14 +1,16 @@
 package mq
 
 import (
+	"fileStore/conf"
 	"fmt"
 	"log"
 )
 
 func RabConsumer(callback func(message []byte) error) error {
 	//1、定义channel exchange 绑定 如果在控制台设置好 那么就不用
+	config := conf.GetConfig()
 	err := rabchannel.ExchangeDeclare( //??? 属性细看
-		"filestore-oss",
+		config.MqUploadExchangeName,
 		"direct", //路由类型
 		true,     //是否持久化
 		false,    //是否丢失自动删除
@@ -21,10 +23,9 @@ func RabConsumer(callback func(message []byte) error) error {
 		return err
 	} else {
 		//错误处理 只不过提前在web端控制台设置好就不会出现这个问题
-
 	}
 	_, err = rabchannel.QueueDeclare(
-		"filestore-channel-oss",
+		config.MqUploadQueue,
 		//是否持久化
 		false,
 		//是否自动删除
@@ -43,9 +44,9 @@ func RabConsumer(callback func(message []byte) error) error {
 
 	}
 	err = rabchannel.QueueBind(
-		"filestore-channel-oss",
-		"oss",
-		"filestore-oss",
+		config.MqUploadQueue,
+		config.MqUploadKey,
+		config.MqUploadExchangeName,
 		false,
 		nil,
 	)
@@ -58,7 +59,7 @@ func RabConsumer(callback func(message []byte) error) error {
 	}
 	//2、开启consumer 获得consumer的channel
 	msgs, err := rabchannel.Consume(
-		"filestore-channel-oss",
+		config.MqUploadQueue,
 		"gua",
 		false, //是否自动应答      ***********不开启这个  使用手动回复 可靠性强  如果生产端没有受到ack 那么会再次发送一遍消息 这两次消息会堆积在队列中 下一次消息传送时会再次发送（堆积的以及这次的消息）
 		false, //排他
@@ -88,7 +89,6 @@ func RabConsumer(callback func(message []byte) error) error {
 				d.Reject(false) //false 丢弃 true 重新加入队列
 
 			} else {
-				//d.Ack(true) //false 丢弃 true 重新加入队列
 				rabchannel.Ack(d.DeliveryTag, false) //tag用于标记是那一条消息
 			}
 		}

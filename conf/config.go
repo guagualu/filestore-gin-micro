@@ -20,11 +20,18 @@ type Conf struct {
 		WriteTimeout time.Duration
 		DialTimeout  time.Duration
 	}
-	LocalStore          string
-	UserServiceName     string
-	FileServiceName     string
-	UserFileServiceName string
-	DtmServer           string
+	LocalStore           string
+	UserServiceName      string
+	FileServiceName      string
+	UserFileServiceName  string
+	DtmServer            string
+	OssAccessKeyId       string
+	OssAccessKeySecret   string
+	OssEndpoint          string
+	MqUploadExchangeName string
+	MqUploadQueue        string
+	MqUploadKey          string
+	MqAddr               string
 }
 
 var once sync.Once
@@ -63,11 +70,18 @@ func GetConfig() Conf {
 				WriteTimeout time.Duration
 				DialTimeout  time.Duration
 			}{Addr: viper.GetString("redis.addr"), Db: viper.GetInt("redis.db"), Username: viper.GetString("redis.username"), Password: viper.GetString("redis.password"), ReadTimeout: viper.GetDuration("redis.read_timeout"), WriteTimeout: viper.GetDuration("redis.write_timeout"), DialTimeout: viper.GetDuration("redis.dial_timeout")},
-			LocalStore:          viper.GetString("local-store"),
-			UserFileServiceName: viper.GetString("user-file-service-name"),
-			UserServiceName:     viper.GetString("user-service-name"),
-			FileServiceName:     viper.GetString("file-service-name"),
-			DtmServer:           viper.GetString("dtmServer"),
+			LocalStore:           viper.GetString("local-store"),
+			UserFileServiceName:  viper.GetString("user-file-service-name"),
+			UserServiceName:      viper.GetString("user-service-name"),
+			FileServiceName:      viper.GetString("file-service-name"),
+			DtmServer:            viper.GetString("dtmServer"),
+			OssAccessKeyId:       viper.GetString("ossAccessKeyId"),
+			OssAccessKeySecret:   viper.GetString("ossAccessKeySecret"),
+			OssEndpoint:          viper.GetString("ossEndpoint"),
+			MqUploadExchangeName: viper.GetString("mqUploadExchangeName"),
+			MqUploadQueue:        viper.GetString("mqUploadQueue"),
+			MqUploadKey:          viper.GetString("mqUploadKey"),
+			MqAddr:               viper.GetString("mqAddr"),
 		}
 	})
 	return config
