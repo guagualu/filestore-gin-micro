@@ -62,7 +62,8 @@ func NewDB(conf conf.Conf) *gorm.DB {
 	}
 	if err = db.AutoMigrate(
 		//User{},
-		File{},
+		//File{},
+		UserFile{},
 	); nil != err {
 		panic("failed auto migrate")
 	}

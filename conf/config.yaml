@@ -13,5 +13,5 @@ redis:
 local-store: ./static/tmp
 user-service-name : user-server
 file-service-name : file-server
-user-file-service-name : user-server
+user-file-service-name : user-file-server
 dtmServer : 127.0.0.1:36790

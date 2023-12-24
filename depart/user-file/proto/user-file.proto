@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package userFileProto;
+//查找位置 产生的包名
+option go_package = "depart/user-file/proto;pb";
+import "google/protobuf/empty.proto";
+//protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative  depart/user-file/proto/*.proto
+service UserFileService {
+  // 保存用户文件
+  rpc SaveUserFile(UserFileReq) returns (google.protobuf.Empty) {}
+  // 删除用户文件
+  rpc DeleteUserFile(UserFileReq) returns (google.protobuf.Empty) {}
+}
+
+message UserFileReq {
+  string file_hash = 1;
+  string file_name = 2;
+  string user_uuid =3;
+}
+
+
+
+

@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"fileStore/internel/biz"
+	"fileStore/internel/middleware/mq"
 	"fileStore/internel/pkg/code/errcode"
 	"fileStore/internel/pkg/code/sucesscode"
 	"fileStore/internel/pkg/response"
@@ -39,11 +40,21 @@ func FileUpload(c *gin.Context) {
 		return
 	}
 	//存入本地
-	fileMeta, err := biz.StoreFileLocal(buf.Bytes(), fileHeader.Filename, fileHeader.Size)
+	fileMeta, err := biz.StoreFileLocal(buf.Bytes(), fileHeader.Filename, fileHeader.Size, req.UserUuid)
 	if err != nil {
 		c.JSON(400, response.NewRespone(errcode.FileStoreFail, "文件获取错误", nil))
 		return
 	}
-	c.JSON(200, response.NewRespone(sucesscode.Success, "文件存储成功", fileMeta))
 	//进行转存 转存完成后的file表的更新
+	fileInfo := mq.MqFileInfo{
+		FileHash:    fileMeta.FileHash,
+		FileName:    fileMeta.FileName,
+		CurLocateAt: fileMeta.FileAddr,
+	}
+	err = biz.StoreFileOss(buf.Bytes(), fileInfo)
+	if err != nil {
+		c.JSON(400, response.NewRespone(errcode.FileStoreFail, "文件转存失败", nil))
+		return
+	}
+	c.JSON(200, response.NewRespone(sucesscode.Success, "文件存储成功", fileMeta))
 }

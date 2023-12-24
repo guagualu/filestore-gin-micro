@@ -33,7 +33,6 @@ func (s *FileRpcServiceStruct) SaveFile(ctx context.Context, in *pb.FileReq) (*e
 func (s *FileRpcServiceStruct) DeleteFile(ctx context.Context, in *pb.FileReq) (*emptypb.Empty, error) {
 	//存入
 	err := data.DeleteFile(ctx, in.FileHash)
-	//err := errors.New("text")
 	if err != nil {
 		return &emptypb.Empty{}, status.New(codes.Aborted, "").Err()
 	}
