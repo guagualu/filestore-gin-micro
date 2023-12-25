@@ -16,6 +16,8 @@ func Router(r *gin.Engine) {
 	g.Use(middleware.JWTMiddleware())
 	{
 		g.POST("/upload", service.FileUpload)
+		g.POST("/fast/upload", service.FileFastUpload)
+		g.GET("/upload/mp/init", service.FileMpUploadInit)
 	}
 
 }

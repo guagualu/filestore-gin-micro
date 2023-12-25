@@ -21,6 +21,7 @@ type Conf struct {
 		DialTimeout  time.Duration
 	}
 	LocalStore           string
+	LocalMpStore         string
 	UserServiceName      string
 	FileServiceName      string
 	UserFileServiceName  string
@@ -71,6 +72,7 @@ func GetConfig() Conf {
 				DialTimeout  time.Duration
 			}{Addr: viper.GetString("redis.addr"), Db: viper.GetInt("redis.db"), Username: viper.GetString("redis.username"), Password: viper.GetString("redis.password"), ReadTimeout: viper.GetDuration("redis.read_timeout"), WriteTimeout: viper.GetDuration("redis.write_timeout"), DialTimeout: viper.GetDuration("redis.dial_timeout")},
 			LocalStore:           viper.GetString("local-store"),
+			LocalMpStore:         viper.GetString("local-mp-store"),
 			UserFileServiceName:  viper.GetString("user-file-service-name"),
 			UserServiceName:      viper.GetString("user-service-name"),
 			FileServiceName:      viper.GetString("file-service-name"),

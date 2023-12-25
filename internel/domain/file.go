@@ -15,3 +15,12 @@ type File struct {
 	UpdateAt time.Time
 	Status   gorm.DeletedAt
 }
+
+type MultipartUploadInfo struct {
+	FileHash   string `json:"file_hash"`
+	FileSize   int    `json:"file_size"`
+	UploadID   string `json:"upload_id"`
+	ChunkSize  int    `json:"chunk_size"`
+	ChunkCount int    `json:"chunk_count"`
+	ChunkIndex int    `json:"chunk_index"`
+}

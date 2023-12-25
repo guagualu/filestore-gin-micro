@@ -10,6 +10,11 @@ const (
 	TokenIsErr
 	FileGetFail
 	FileStoreFail
+	NotFoundFile
+	FileFastUploadFail
+	FileMpInitErr
+	FileMpCheckFail
+	RetryErr
 )
 
 type withCode struct {

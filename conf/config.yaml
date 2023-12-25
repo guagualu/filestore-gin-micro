@@ -11,6 +11,7 @@ redis:
   write_timeout: 0.2
   dial_timeout: 0.2
 local-store: ./static/tmp
+local-mp-store: ./static/mp
 user-service-name : user-server
 file-service-name : file-server
 user-file-service-name : user-file-server

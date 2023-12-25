@@ -2,10 +2,12 @@ package data
 
 import (
 	"context"
+	"errors"
 	"fileStore/internel/domain"
 	"fileStore/internel/pkg/code/errcode"
 	"fileStore/log"
 	"gorm.io/gorm"
+	"strconv"
 	"time"
 )
 
@@ -20,6 +22,27 @@ type File struct {
 	Status   gorm.DeletedAt `json:"status"`
 }
 
+func GetFileByFileHash(ctx context.Context, fileHash string) (*domain.File, error) {
+	db := GetData()
+	var file File
+	if err := db.DB(ctx).Where("file_hash = ?", fileHash).First(&file).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errcode.WithCode(errcode.NotFoundFile, "未找到file", nil)
+		}
+		log.Logger.Error(errcode.WithCode(errcode.Database_err, "数据库错误"))
+		return nil, errcode.WithCode(errcode.Database_err, "数据库错误")
+	}
+	return &domain.File{
+		ID:       file.ID,
+		FileHash: file.FileHash,
+		FileName: file.FileName,
+		FileSize: file.FileSize,
+		FileAddr: file.FileAddr,
+		CreateAt: file.CreateAt,
+		UpdateAt: file.UpdateAt,
+		Status:   file.Status,
+	}, nil
+}
 func SaveFile(ctx context.Context, file domain.File) error {
 	db := GetData()
 	u := File{
@@ -51,4 +74,56 @@ func UpdataFileLocated(ctx context.Context, fileHash, located string) error {
 		return errcode.WithCode(errcode.Database_err, "数据库错误")
 	}
 	return nil
+}
+
+func SaveFileUploadInfo(upInfo domain.MultipartUploadInfo) error {
+	red := GetData().red
+	_, err := red.Get().Do("HSET", "MP_"+upInfo.UploadID, "chunkcount", upInfo.ChunkCount)
+	if err != nil {
+		return err
+	}
+	_, err = red.Get().Do("HSET", "MP_"+upInfo.UploadID, "filehash", upInfo.FileHash)
+	if err != nil {
+		return err
+	}
+	_, err = red.Get().Do("HSET", "MP_"+upInfo.UploadID, "filesize", upInfo.FileSize)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func SaveFileMpUpload(upInfo domain.MultipartUploadInfo) error {
+	red := GetData().red
+	_, err := red.Get().Do("HSET", "MP_"+upInfo.UploadID, "chunkindex"+strconv.Itoa(upInfo.ChunkIndex), 1)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func GetFileMpUploadSum(upInfo domain.MultipartUploadInfo) (int, error) {
+	red := GetData().red
+	sum := 0
+	for i := 1; i <= upInfo.ChunkCount; i++ {
+		_, err := red.Get().Do("HGET", "MP_"+upInfo.UploadID, "chunkindex"+strconv.Itoa(i))
+		if err != nil {
+			continue
+		}
+		sum++
+	}
+	return sum, nil
+}
+
+func GetFailedChunk(uploadId string, chunkCount int) ([]int, error) {
+	red := GetData().red
+	res := make([]int, 0)
+	for i := 1; i <= chunkCount; i++ {
+		_, err := red.Get().Do("HGET", "MP_"+uploadId, "chunkindex"+strconv.Itoa(i))
+		if err != nil {
+			res = append(res, i)
+			continue
+		}
+	}
+	return res, nil
 }
