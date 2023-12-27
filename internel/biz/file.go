@@ -18,6 +18,7 @@ import (
 	dtmgrpc "github.com/dtm-labs/client/dtmgrpc"
 	"os"
 	"strconv"
+	"time"
 )
 
 func StoreFileLocal(fileData []byte, fileName string, fileSize int64, userUuid string) (*domain.File, error) {
@@ -60,8 +61,9 @@ func StoreFileLocal(fileData []byte, fileName string, fileSize int64, userUuid s
 	//Add(qsBusi+"/TransIn", qsBusi+"/TransInCompensate", req)
 	// 提交saga事务，dtm会完成所有的子事务/回滚所有的子事务
 	saga.WaitResult = true
-	saga.RequestTimeout = 1000 * 100
-	saga.TimeoutToFail = 1000 * 1000
+	saga.RequestTimeout = 1000 * 1000
+	saga.TimeoutToFail = 1000 * 10000
+	saga.Concurrent = false
 	saga.RetryLimit = 0
 	err = saga.Submit()
 	if err != nil {
@@ -87,8 +89,17 @@ func FastUpload(ctx context.Context, fileData []byte, fileName string, userUuid 
 	if err != nil {
 		return err
 	}
-	//存入user-file中
 	userFileClient := client.GetUserFileClient()
+	//查找关系 如果已经存在就不再重复存入user-file
+	file, _ := userFileClient.GetUserFile(ctx, &userFilePb.UserFileReq{
+		FileHash: fileHash,
+		FileName: fileName,
+		UserUuid: userUuid,
+	})
+	if file != nil {
+		return nil
+	}
+	//存入user-file中
 	_, err = userFileClient.SaveUserFile(ctx, &userFilePb.UserFileReq{
 		FileHash: fileHash,
 		FileName: fileName,
@@ -106,11 +117,13 @@ func FileMploadInit(mpFileInfo domain.MultipartUploadInfo) error {
 
 func FileMploadLocal(fileData []byte, uploadId string, chunkIndex int) error {
 	// 存入本地
-	locatedAt := conf.GetConfig().LocalMpStore + "/" + uploadId + "/" + strconv.Itoa(chunkIndex)
+	locatedAt := conf.GetConfig().LocalMpStore + "/" + uploadId + "/" + "chunk_" + strconv.Itoa(chunkIndex)
+	os.MkdirAll(conf.GetConfig().LocalMpStore+"/"+uploadId, 0666)
 	localFile, err := os.Create(locatedAt)
 	if err != nil {
 		return err
 	}
+	defer localFile.Close()
 	_, err = localFile.Write(fileData)
 	if err != nil {
 		return err
@@ -170,6 +183,7 @@ func FileMpUploadStore(uploadId, fileHash, fileName string, userUuid string, fil
 	saga.RequestTimeout = 1000 * 100
 	saga.TimeoutToFail = 1000 * 1000
 	saga.RetryLimit = 0
+	saga.Concurrent = false
 	err = saga.Submit()
 	if err != nil {
 		log.Logger.Error("分布式事务执行失败,err:", err)
@@ -183,7 +197,8 @@ func FileMpUploadMerge(uploadId, fileHash string) (string, error) {
 	srcPath := conf.GetConfig().LocalMpStore + "/" + uploadId
 	destPath := conf.GetConfig().LocalStore + "/" + fileHash
 	cmd := fmt.Sprintf("cd %s && ls | sort -n | xargs cat > %s", srcPath, destPath)
-	_, err := util.ExecLinuxShell(cmd)
+	//_, err := util.ExecLinuxShell(cmd)
+	_, _, err := util.ExecWinShell("merge.sh", cmd)
 	if err != nil {
 		log.Logger.Error("分块文件合并失败")
 		return "", err
@@ -199,4 +214,29 @@ func CheckFailedMpUploadFile(uploadId string, chunkCount int) ([]int, error) {
 		return nil, err
 	}
 	return chunkArray, nil
+}
+
+func GetFileInfo(ctx context.Context, fileHash string) (*domain.File, error) {
+	return data.GetFileByFileHash(ctx, fileHash)
+}
+
+func GetUserFileInfo(ctx context.Context, fileHash, userUuid, fileName string) (*domain.UserFile, error) {
+	res, err := client.GetUserFileClient().GetUserFile(ctx, &userFilePb.UserFileReq{
+		FileHash: fileHash,
+		FileName: fileName,
+		UserUuid: userUuid,
+	})
+	if err != nil {
+		return nil, err
+	}
+	createdAt, _ := time.Parse("2006-01-02 15:04:05", res.CreatedAt)
+	updatedAt, _ := time.Parse("2006-01-02 15:04:05", res.UpdatedAt)
+	return &domain.UserFile{
+		ID:       uint(res.Id),
+		FileHash: res.FileHash,
+		UserUuid: res.UserUuid,
+		FileName: res.FileName,
+		CreateAt: createdAt,
+		UpdateAt: updatedAt,
+	}, nil
 }

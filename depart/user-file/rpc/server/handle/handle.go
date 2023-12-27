@@ -41,3 +41,23 @@ func (s *UserFileRpcServiceStruct) DeleteUserFile(ctx context.Context, in *pb.Us
 	}
 	return &emptypb.Empty{}, status.New(codes.OK, "").Err()
 }
+
+func (s *UserFileRpcServiceStruct) GetUserFile(ctx context.Context, in *pb.UserFileReq) (*pb.UserFileRsp, error) {
+	userFile := domain.UserFile{
+		FileHash: in.FileHash,
+		FileName: in.FileName,
+		UserUuid: in.UserUuid,
+	}
+	res, err := data.GetUserFiles(ctx, userFile)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.UserFileRsp{
+		FileHash:  res.FileHash,
+		FileName:  res.FileName,
+		UserUuid:  res.UserUuid,
+		Id:        uint32(res.ID),
+		CreatedAt: res.CreateAt.String(),
+		UpdatedAt: res.UpdateAt.String(),
+	}, nil
+}

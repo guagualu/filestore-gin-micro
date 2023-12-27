@@ -15,6 +15,11 @@ type FileRpcServiceStruct struct {
 }
 
 func (s *FileRpcServiceStruct) SaveFile(ctx context.Context, in *pb.FileReq) (*emptypb.Empty, error) {
+	//先检查是否file已经存在
+	existFile, _ := data.GetFileByFileHash(ctx, in.FileHash)
+	if existFile != nil {
+		return &emptypb.Empty{}, status.New(codes.OK, "").Err()
+	}
 	//存入
 	file := domain.File{
 		FileHash: in.FileHash,

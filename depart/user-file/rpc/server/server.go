@@ -3,6 +3,7 @@ package server
 import (
 	pb "fileStore/depart/user-file/proto"
 	"fileStore/depart/user-file/rpc/server/handle"
+	"fileStore/internel/domain"
 	etcdServe "fileStore/internel/middleware/etcd/server"
 	"fileStore/log"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 )
 
 func RpcServer() {
+	domain.ServiceName = "user-file"
 	Serve := grpc.NewServer()
 	rg := &handle.UserFileRpcServiceStruct{}
 	pb.RegisterUserFileServiceServer(

@@ -15,6 +15,10 @@ const (
 	FileMpInitErr
 	FileMpCheckFail
 	RetryErr
+	DownloadFileNotValid
+	ListUserFileErr
+	DeleteUserFilesErr
+	RenameUserFileErr
 )
 
 type withCode struct {

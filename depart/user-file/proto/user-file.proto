@@ -8,6 +8,8 @@ import "google/protobuf/empty.proto";
 service UserFileService {
   // 保存用户文件
   rpc SaveUserFile(UserFileReq) returns (google.protobuf.Empty) {}
+  // 保存用户文件
+  rpc GetUserFile(UserFileReq) returns (UserFileRsp) {}
   // 删除用户文件
   rpc DeleteUserFile(UserFileReq) returns (google.protobuf.Empty) {}
 }
@@ -16,6 +18,16 @@ message UserFileReq {
   string file_hash = 1;
   string file_name = 2;
   string user_uuid =3;
+}
+
+
+message UserFileRsp {
+  string file_hash = 1;
+  string file_name = 2;
+  string user_uuid =3;
+  uint32 id =4;
+  string created_at =5;
+  string updated_at =6;
 }
 
 

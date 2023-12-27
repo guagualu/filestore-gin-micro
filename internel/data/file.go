@@ -6,6 +6,7 @@ import (
 	"fileStore/internel/domain"
 	"fileStore/internel/pkg/code/errcode"
 	"fileStore/log"
+	"fmt"
 	"gorm.io/gorm"
 	"strconv"
 	"time"
@@ -69,8 +70,9 @@ func DeleteFile(ctx context.Context, fileHash string) error {
 
 func UpdataFileLocated(ctx context.Context, fileHash, located string) error {
 	db := GetData()
-	if err := db.DB(ctx).Where("file_hash = ?", fileHash).Update("file_addr", located).Error; err != nil {
-		log.Logger.Error(errcode.WithCode(errcode.Database_err, "数据库错误"))
+	if err := db.DB(ctx).Debug().Where("file_hash = ?", fileHash).Table("file").Update("file_addr", located).Error; err != nil {
+		log.Logger.Error("UpdataFileLocated err:", err)
+		fmt.Println(err)
 		return errcode.WithCode(errcode.Database_err, "数据库错误")
 	}
 	return nil

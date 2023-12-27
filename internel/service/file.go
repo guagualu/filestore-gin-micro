@@ -3,16 +3,22 @@ package service
 import (
 	"bytes"
 	"context"
+	"fileStore/conf"
 	"fileStore/internel/biz"
 	"fileStore/internel/domain"
 	"fileStore/internel/middleware/mq"
+	"fileStore/internel/middleware/oss"
 	"fileStore/internel/pkg/code/errcode"
 	"fileStore/internel/pkg/code/sucesscode"
+	"fileStore/internel/pkg/encoding"
 	"fileStore/internel/pkg/response"
 	"fileStore/log"
 	"github.com/gin-gonic/gin"
 	"io"
+	"net/http"
 	"os"
+	"strconv"
+	"strings"
 )
 
 type FileUploadReq struct {
@@ -53,6 +59,17 @@ type ReTryFileMpUploadInitReq struct {
 
 type ReTryFileMpUploadInitRsp struct {
 	ChunkIndexArray []int ` json:"chunk_index_array"`
+}
+
+type DownloadReq struct {
+	FileHash string `form:"file_hash"  json:"file_hash" binding:"required"`
+	UserUuid string `form:"user_uuid"  json:"user_uuid" binding:"required"`
+	FileName string `form:"file_name"  json:"file_name" binding:"required"`
+}
+
+type PreFileInfoRes struct {
+	FileHash string `form:"file_hash"  json:"file_hash" binding:"required"`
+	FileSize int    `form:"file_size"  json:"file_size" binding:"required"`
 }
 
 func FileUpload(c *gin.Context) {
@@ -133,6 +150,28 @@ func FileFastUpload(c *gin.Context) {
 	return
 }
 
+func PreFileInfo(c *gin.Context) {
+	fileHeader, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(400, response.NewRespone(errcode.FileGetFail, "文件获取错误", nil))
+		return
+	}
+	file, err := fileHeader.Open()
+	//将文件转为[]byte
+	buf := bytes.NewBuffer(nil)
+	_, err = io.Copy(buf, file)
+	if err != nil {
+		c.JSON(400, response.NewRespone(errcode.FileGetFail, "文件获取错误", nil))
+		return
+	}
+	fileHash := encoding.Sha1(buf.Bytes())
+	fileSize := fileHeader.Size
+	c.JSON(http.StatusOK, response.NewRespone(sucesscode.Success, "文件hash获取成功", PreFileInfoRes{
+		FileHash: fileHash,
+		FileSize: int(fileSize),
+	}))
+}
+
 func FileMpUploadInit(c *gin.Context) {
 	var req MultipartUploadInitReq
 	err := c.ShouldBind(&req)
@@ -157,19 +196,22 @@ func FileMpUploadInit(c *gin.Context) {
 }
 
 func FileMpUpload(c *gin.Context) {
-	var req MultipartUploadReq
-	err := c.ShouldBind(&req)
-	if err != nil {
-		c.JSON(400, response.NewRespone(errcode.ValidationFaild, "参数错误", nil))
-		return
-	}
+	//var req MultipartUploadReq
+	//err := c.ShouldBind(&req)
+	//if err != nil {
+	//	c.JSON(400, response.NewRespone(errcode.ValidationFaild, "参数错误", err))
+	//	return
+	//}
+	uploadId := c.Request.Header.Get("upload_id")
+	chunkIndexStr := c.Request.Header.Get("chunk_index")
+	chunkIndex, _ := strconv.Atoi(chunkIndexStr)
 	mpInfo := domain.MultipartUploadInfo{
-		UploadID:   req.UploadID,
-		ChunkIndex: req.ChunkIndex,
+		UploadID:   uploadId,
+		ChunkIndex: chunkIndex,
 	}
 	fileHeader, err := c.FormFile("file")
 	if err != nil {
-		c.JSON(400, response.NewRespone(errcode.FileGetFail, "文件获取错误", nil))
+		c.JSON(400, response.NewRespone(errcode.FileGetFail, "文件获取错误", err.Error()))
 		return
 	}
 	file, err := fileHeader.Open()
@@ -177,6 +219,7 @@ func FileMpUpload(c *gin.Context) {
 		c.JSON(400, response.NewRespone(errcode.FileGetFail, "文件获取错误", nil))
 		return
 	}
+
 	//将文件转为[]byte
 	buf := bytes.NewBuffer(nil)
 	_, err = io.Copy(buf, file)
@@ -254,9 +297,36 @@ func ReTryFileMpUploadInit(c *gin.Context) {
 	}
 	chunkArray, err := biz.CheckFailedMpUploadFile(req.UploadID, req.ChunkCount)
 	if err != nil {
-		c.JSON(400, response.NewRespone(errcode.RetryErr, "文件分块上传重试初始化失败", nil))
+		c.JSON(500, response.NewRespone(errcode.RetryErr, "文件分块上传重试初始化失败", nil))
 		return
 	}
-	c.JSON(400, response.NewRespone(sucesscode.Success, "文件分块上传重试初始化成功", ReTryFileMpUploadInitRsp{chunkArray}))
+	c.JSON(200, response.NewRespone(sucesscode.Success, "文件分块上传重试初始化成功", ReTryFileMpUploadInitRsp{chunkArray}))
 	return
+}
+
+// DownloadHandler : 文件下载接口
+func Download(c *gin.Context) {
+	var req DownloadReq
+	err := c.ShouldBind(&req)
+	if err != nil {
+		c.JSON(400, response.NewRespone(errcode.ValidationFaild, "参数错误", nil))
+		return
+	}
+	// TODO: 处理异常情况
+	//获取file信息以及查询是否属于当前用户
+	fileInfo, ferr := biz.GetFileInfo(context.Background(), req.FileHash)
+	userFile, uferr := biz.GetUserFileInfo(context.Background(), req.FileHash, req.UserUuid, req.FileName)
+	if ferr != nil || uferr != nil || fileInfo == nil || userFile == nil {
+		c.JSON(400, response.NewRespone(errcode.DownloadFileNotValid, "所要下载的文件不存在或者不属于当前用户", nil))
+		return
+	}
+	if strings.HasPrefix(fileInfo.FileAddr, conf.GetConfig().LocalStore) {
+		// 本地文件， 直接下载
+		//具体来说，它将文件从指定的路径读取并发送给客户端，以便用户下载或查看文件。其中，参数c是一个gin.Context类型的指针，它表示当前的HTTP请求上下文。uniqFile.FileAddr.String表示文件的路径，userFile.FileName表示文件的文件名。
+		c.FileAttachment(fileInfo.FileAddr, userFile.FileName)
+	} else if strings.HasPrefix(fileInfo.FileAddr, "oss") {
+		// oss中的文件
+		signedURL := oss.DownloadURL(fileInfo.FileAddr)
+		c.Data(http.StatusOK, "application/octet-stream", []byte(signedURL))
+	}
 }

@@ -25,6 +25,8 @@ const _ = grpc.SupportPackageIsVersion7
 type UserFileServiceClient interface {
 	// 保存用户文件
 	SaveUserFile(ctx context.Context, in *UserFileReq, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	// 保存用户文件
+	GetUserFile(ctx context.Context, in *UserFileReq, opts ...grpc.CallOption) (*UserFileRsp, error)
 	// 删除用户文件
 	DeleteUserFile(ctx context.Context, in *UserFileReq, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
@@ -46,6 +48,15 @@ func (c *userFileServiceClient) SaveUserFile(ctx context.Context, in *UserFileRe
 	return out, nil
 }
 
+func (c *userFileServiceClient) GetUserFile(ctx context.Context, in *UserFileReq, opts ...grpc.CallOption) (*UserFileRsp, error) {
+	out := new(UserFileRsp)
+	err := c.cc.Invoke(ctx, "/userFileProto.UserFileService/GetUserFile", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *userFileServiceClient) DeleteUserFile(ctx context.Context, in *UserFileReq, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, "/userFileProto.UserFileService/DeleteUserFile", in, out, opts...)
@@ -61,6 +72,8 @@ func (c *userFileServiceClient) DeleteUserFile(ctx context.Context, in *UserFile
 type UserFileServiceServer interface {
 	// 保存用户文件
 	SaveUserFile(context.Context, *UserFileReq) (*emptypb.Empty, error)
+	// 保存用户文件
+	GetUserFile(context.Context, *UserFileReq) (*UserFileRsp, error)
 	// 删除用户文件
 	DeleteUserFile(context.Context, *UserFileReq) (*emptypb.Empty, error)
 	mustEmbedUnimplementedUserFileServiceServer()
@@ -72,6 +85,9 @@ type UnimplementedUserFileServiceServer struct {
 
 func (UnimplementedUserFileServiceServer) SaveUserFile(context.Context, *UserFileReq) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SaveUserFile not implemented")
+}
+func (UnimplementedUserFileServiceServer) GetUserFile(context.Context, *UserFileReq) (*UserFileRsp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUserFile not implemented")
 }
 func (UnimplementedUserFileServiceServer) DeleteUserFile(context.Context, *UserFileReq) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteUserFile not implemented")
@@ -107,6 +123,24 @@ func _UserFileService_SaveUserFile_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _UserFileService_GetUserFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UserFileReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserFileServiceServer).GetUserFile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/userFileProto.UserFileService/GetUserFile",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserFileServiceServer).GetUserFile(ctx, req.(*UserFileReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _UserFileService_DeleteUserFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UserFileReq)
 	if err := dec(in); err != nil {
@@ -135,6 +169,10 @@ var UserFileService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SaveUserFile",
 			Handler:    _UserFileService_SaveUserFile_Handler,
+		},
+		{
+			MethodName: "GetUserFile",
+			Handler:    _UserFileService_GetUserFile_Handler,
 		},
 		{
 			MethodName: "DeleteUserFile",

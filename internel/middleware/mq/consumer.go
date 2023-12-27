@@ -9,6 +9,7 @@ import (
 func RabConsumer(callback func(message []byte) error) error {
 	//1、定义channel exchange 绑定 如果在控制台设置好 那么就不用
 	config := conf.GetConfig()
+	rabchannel := GetRabchannel()
 	err := rabchannel.ExchangeDeclare( //??? 属性细看
 		config.MqUploadExchangeName,
 		"direct", //路由类型

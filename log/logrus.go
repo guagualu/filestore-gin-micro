@@ -1,6 +1,7 @@
 package log
 
 import (
+	"fmt"
 	"github.com/sirupsen/logrus"
 
 	"os"
@@ -14,7 +15,7 @@ func init() {
 	// 创建一个 Logrus 实例
 	Logger.Out = file
 	if err != nil {
-		panic(err)
+		fmt.Println("log err :", err)
 	}
 
 	// 添加日志记录器

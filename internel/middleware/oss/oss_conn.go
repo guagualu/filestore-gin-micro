@@ -49,7 +49,7 @@ func DownloadURL(objName string) string {
 // BuildLifecycleRule : 针对指定bucket设置生命周期规则
 func BuildLifecycleRule(bucketName string) {
 	// 表示前缀为test的对象(文件)距最后修改时间30天后过期。
-	ruleTest1 := oss.BuildLifecycleRuleByDays("rule1", "test/", true, 30)
+	ruleTest1 := oss.BuildLifecycleRuleByDays("rule1", "script/", true, 30)
 	rules := []oss.LifecycleRule{ruleTest1}
 
 	Client().SetBucketLifecycle(bucketName, rules)

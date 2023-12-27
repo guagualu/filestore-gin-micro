@@ -3,13 +3,15 @@ package mq
 import (
 	"fileStore/conf"
 	"fmt"
+	"sync"
 
 	"github.com/streadway/amqp"
 )
 
 var (
-	Rabconn    *amqp.Connection
+	rabconn    *amqp.Connection
 	rabchannel *amqp.Channel
+	once       sync.Once
 )
 
 type MqFileInfo struct {
@@ -18,28 +20,59 @@ type MqFileInfo struct {
 	CurLocateAt string
 }
 
-func init() {
-	var err error
-	config := conf.GetConfig()
-	//1、获取mq连接
-	Rabconn, err = amqp.Dial(config.MqAddr)
-	if err != nil {
-		fmt.Println("rabconn dail err:", err)
-		return
-	}
-	//2、获取mq的channel
-	rabchannel, err = Rabconn.Channel()
-	if err != nil {
-		fmt.Println("rabconn channel err:", err)
-		return
-	}
+//
+//func initMq() {
+//	var err error
+//	config := conf.GetConfig()
+//	//1、获取mq连接
+//	Rabconn, err = amqp.Dial(config.MqAddr)
+//	if err != nil {
+//		fmt.Println("rabconn dail err:", err)
+//		return
+//	}
+//	//2、获取mq的channel
+//	rabchannel, err = Rabconn.Channel()
+//	if err != nil {
+//		fmt.Println("rabconn channel err:", err)
+//		return
+//	}
+//}
 
+//func GetRabconn() *amqp.Connection {
+//	once.Do(func() {
+//		var err error
+//		config := conf.GetConfig()
+//		//1、获取mq连接
+//		rabconn, err = amqp.Dial(config.MqAddr)
+//		if err != nil {
+//			fmt.Println("rabconn dail err:", err)
+//			return
+//		}
+//	})
+//	return rabconn
+//}
+
+func GetRabchannel() *amqp.Channel {
+	once.Do(func() {
+		var err error
+		config := conf.GetConfig()
+		//1、获取mq连接
+		rabconn, err = amqp.Dial(config.MqAddr)
+		if err != nil {
+			fmt.Println("rabconn dail err:", err)
+			return
+		}
+		//2、获取mq的channel
+		rabchannel, _ = rabconn.Channel()
+	})
+	return rabchannel
 }
 
 func Rabpublish(routekey, msg string) {
 	//如果在web控制台创建了exchange 1可以不用  发布端只负责发布到交换机
 	config := conf.GetConfig()
 	//1、先定义出exchange
+	rabchannel := GetRabchannel()
 	err := rabchannel.ExchangeDeclare( //??? 属性细看
 		config.MqUploadExchangeName,
 		"direct", //路由类型
