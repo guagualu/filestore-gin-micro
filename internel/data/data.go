@@ -109,6 +109,10 @@ func (d *Data) DB(ctx context.Context) *gorm.DB {
 	return d.db
 }
 
+func (d *Data) RDB() *redis.Pool {
+	return d.red
+}
+
 // 获取redis分布式锁
 const (
 	lockCommand = `if redis.call("GET", KEYS[1]) == ARGV[1] then

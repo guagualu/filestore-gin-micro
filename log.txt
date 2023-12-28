@@ -1,1 +1,1 @@
-time="2023-12-27T17:54:04+08:00" level=info msg="This is an info message"
+time="2023-12-28T17:37:44+08:00" level=info msg="This is an info message"

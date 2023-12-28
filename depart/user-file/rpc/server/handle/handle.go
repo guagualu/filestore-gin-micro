@@ -2,6 +2,7 @@ package handle
 
 import (
 	"context"
+	"errors"
 	pb "fileStore/depart/user-file/proto"
 	"fileStore/internel/data"
 	"fileStore/internel/domain"
@@ -50,7 +51,7 @@ func (s *UserFileRpcServiceStruct) GetUserFile(ctx context.Context, in *pb.UserF
 	}
 	res, err := data.GetUserFiles(ctx, userFile)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("test")
 	}
 	return &pb.UserFileRsp{
 		FileHash:  res.FileHash,

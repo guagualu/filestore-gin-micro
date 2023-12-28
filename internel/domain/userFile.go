@@ -14,3 +14,8 @@ type UserFile struct {
 	UpdateAt time.Time
 	Status   gorm.DeletedAt
 }
+
+type DeletedUserFileInfo struct {
+	FileHash string
+	FileName string
+}

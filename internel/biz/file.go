@@ -116,7 +116,7 @@ func FileMploadInit(mpFileInfo domain.MultipartUploadInfo) error {
 }
 
 func FileMploadLocal(fileData []byte, uploadId string, chunkIndex int) error {
-	// 存入本地
+	// 存入本地 注意 要先存入本地 再写redis 因为有个completed检查可能会在响应未完成时就来请求redis
 	locatedAt := conf.GetConfig().LocalMpStore + "/" + uploadId + "/" + "chunk_" + strconv.Itoa(chunkIndex)
 	os.MkdirAll(conf.GetConfig().LocalMpStore+"/"+uploadId, 0666)
 	localFile, err := os.Create(locatedAt)
@@ -195,7 +195,7 @@ func FileMpUploadStore(uploadId, fileHash, fileName string, userUuid string, fil
 // 分块文件进行合并
 func FileMpUploadMerge(uploadId, fileHash string) (string, error) {
 	srcPath := conf.GetConfig().LocalMpStore + "/" + uploadId
-	destPath := conf.GetConfig().LocalStore + "/" + fileHash
+	destPath := "../../tmp/" + fileHash
 	cmd := fmt.Sprintf("cd %s && ls | sort -n | xargs cat > %s", srcPath, destPath)
 	//_, err := util.ExecLinuxShell(cmd)
 	_, _, err := util.ExecWinShell("merge.sh", cmd)

@@ -13,6 +13,8 @@ func Router(r *gin.Engine) {
 		g.POST("/list", service.ListUserFiles)
 		g.POST("/rename", service.RenameUserFile)
 		g.POST("/delete", service.DeletedUserFiles)
+		g.POST("/clash/list", service.ListDeletedUserFiles)
+		g.POST("/clash/delete", service.TrueDeletedUserFiles)
 	}
 
 }

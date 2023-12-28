@@ -7,7 +7,6 @@ import (
 	"fileStore/internel/middleware/mq"
 	"fileStore/internel/middleware/oss"
 	"fileStore/log"
-	"fmt"
 	"os"
 )
 
@@ -16,13 +15,11 @@ func StoreOssPragram(message []byte) error {
 	fileinfo := mq.MqFileInfo{}
 	err := json.Unmarshal(message, &fileinfo)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 	//2、找到file的临时存储地址，读取文件
 	file, err := os.Open(fileinfo.CurLocateAt)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 	//filebyte, err := io.ReadAll(file)

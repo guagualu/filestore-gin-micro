@@ -34,7 +34,7 @@ func CreatUser(ctx context.Context, user domain.User) error {
 	}
 	u.Uuid = uuid.NewUuid()
 	if err := db.DB(ctx).Omit("created_at", "updated_at", "next_expire_time").Create(&u).Error; err != nil {
-		log.Logger.Error(errcode.WithCode(errcode.Database_err, "数据库错误"))
+		log.Logger.Error("数据库错误:", err)
 		return errcode.WithCode(errcode.Database_err, "数据库错误")
 	}
 	return nil
@@ -47,7 +47,7 @@ func GetUserByPhoneAndPsd(ctx context.Context, user domain.User) (*domain.User, 
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errcode.WithCode(errcode.NotFoundUser, "未找到用户")
 		}
-		log.Logger.Error(errcode.WithCode(errcode.Database_err, "数据库错误"))
+		log.Logger.Error("数据库错误:", err)
 		return nil, errcode.WithCode(errcode.Database_err, "数据库错误")
 	}
 	res := new(domain.User)

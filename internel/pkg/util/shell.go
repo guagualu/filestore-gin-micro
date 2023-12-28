@@ -2,7 +2,6 @@ package util
 
 import (
 	"bytes"
-	"fmt"
 	"os"
 	"os/exec"
 )
@@ -29,7 +28,6 @@ func ExecWinShell(s string, shText string) (string, string, error) {
 	// 创建文件
 	file, err := os.Create("merge.sh")
 	if err != nil {
-		fmt.Println(err)
 		return "", "", err
 	}
 	defer file.Close()
@@ -37,12 +35,10 @@ func ExecWinShell(s string, shText string) (string, string, error) {
 	// 写入内容
 	_, err = file.WriteString("#!/bin/bash\n")
 	if err != nil {
-		fmt.Println(err)
 		return "", "", err
 	}
 	_, err = file.WriteString(shText)
 	if err != nil {
-		fmt.Println(err)
 		return "", "", err
 	}
 	//函数返回一个io.Writer类型的*Cmd

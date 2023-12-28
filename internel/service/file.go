@@ -250,7 +250,7 @@ func CompleteFileMpUpload(c *gin.Context) {
 	if num != req.ChunkCount {
 		c.JSON(400, response.NewRespone(errcode.FileStoreFail, "正在分块上传中", MultipartUploadCompleteRsp{
 			Completed: false,
-			Progress:  (num / req.ChunkCount) * 100,
+			Progress:  int((float32(num) / float32(req.ChunkCount)) * 100),
 		}))
 	} else {
 		//分块上传完毕 完成分块文件组装、数据库更新

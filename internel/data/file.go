@@ -6,7 +6,7 @@ import (
 	"fileStore/internel/domain"
 	"fileStore/internel/pkg/code/errcode"
 	"fileStore/log"
-	"fmt"
+	"github.com/gomodule/redigo/redis"
 	"gorm.io/gorm"
 	"strconv"
 	"time"
@@ -30,7 +30,7 @@ func GetFileByFileHash(ctx context.Context, fileHash string) (*domain.File, erro
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errcode.WithCode(errcode.NotFoundFile, "未找到file", nil)
 		}
-		log.Logger.Error(errcode.WithCode(errcode.Database_err, "数据库错误"))
+		log.Logger.Error("数据库错误:", err)
 		return nil, errcode.WithCode(errcode.Database_err, "数据库错误")
 	}
 	return &domain.File{
@@ -53,7 +53,7 @@ func SaveFile(ctx context.Context, file domain.File) error {
 		FileAddr: file.FileAddr,
 	}
 	if err := db.DB(ctx).Omit("created_at", "updated_at").Create(&u).Error; err != nil {
-		log.Logger.Error(errcode.WithCode(errcode.Database_err, "数据库错误"))
+		log.Logger.Error("数据库错误:", err)
 		return errcode.WithCode(errcode.Database_err, "数据库错误")
 	}
 	return nil
@@ -62,7 +62,7 @@ func SaveFile(ctx context.Context, file domain.File) error {
 func DeleteFile(ctx context.Context, fileHash string) error {
 	db := GetData()
 	if err := db.DB(ctx).Where("file_hash = ?", fileHash).Delete(&File{}).Error; err != nil {
-		log.Logger.Error(errcode.WithCode(errcode.Database_err, "数据库错误"))
+		log.Logger.Error("数据库错误:", err)
 		return errcode.WithCode(errcode.Database_err, "数据库错误")
 	}
 	return nil
@@ -72,23 +72,23 @@ func UpdataFileLocated(ctx context.Context, fileHash, located string) error {
 	db := GetData()
 	if err := db.DB(ctx).Debug().Where("file_hash = ?", fileHash).Table("file").Update("file_addr", located).Error; err != nil {
 		log.Logger.Error("UpdataFileLocated err:", err)
-		fmt.Println(err)
 		return errcode.WithCode(errcode.Database_err, "数据库错误")
 	}
 	return nil
 }
 
 func SaveFileUploadInfo(upInfo domain.MultipartUploadInfo) error {
-	red := GetData().red
-	_, err := red.Get().Do("HSET", "MP_"+upInfo.UploadID, "chunkcount", upInfo.ChunkCount)
+	conn := GetData().red.Get()
+	defer conn.Close()
+	_, err := conn.Do("HSET", "MP_"+upInfo.UploadID, "chunkcount", upInfo.ChunkCount)
 	if err != nil {
 		return err
 	}
-	_, err = red.Get().Do("HSET", "MP_"+upInfo.UploadID, "filehash", upInfo.FileHash)
+	_, err = conn.Do("HSET", "MP_"+upInfo.UploadID, "filehash", upInfo.FileHash)
 	if err != nil {
 		return err
 	}
-	_, err = red.Get().Do("HSET", "MP_"+upInfo.UploadID, "filesize", upInfo.FileSize)
+	_, err = conn.Do("HSET", "MP_"+upInfo.UploadID, "filesize", upInfo.FileSize)
 	if err != nil {
 		return err
 	}
@@ -96,8 +96,10 @@ func SaveFileUploadInfo(upInfo domain.MultipartUploadInfo) error {
 }
 
 func SaveFileMpUpload(upInfo domain.MultipartUploadInfo) error {
-	red := GetData().red
-	_, err := red.Get().Do("HSET", "MP_"+upInfo.UploadID, "chunkindex"+strconv.Itoa(upInfo.ChunkIndex), 1)
+	conn := GetData().RDB().Get()
+	defer conn.Close()
+	_, err := conn.Do("HSET", "MP_"+upInfo.UploadID, "chunkindex"+strconv.Itoa(upInfo.ChunkIndex), 1)
+	//reply, err := conn.Do("SET", "test1", 1)
 	if err != nil {
 		return err
 	}
@@ -105,11 +107,12 @@ func SaveFileMpUpload(upInfo domain.MultipartUploadInfo) error {
 }
 
 func GetFileMpUploadSum(upInfo domain.MultipartUploadInfo) (int, error) {
-	red := GetData().red
+	conn := GetData().red.Get()
+	defer conn.Close()
 	sum := 0
 	for i := 1; i <= upInfo.ChunkCount; i++ {
-		_, err := red.Get().Do("HGET", "MP_"+upInfo.UploadID, "chunkindex"+strconv.Itoa(i))
-		if err != nil {
+		reply, err := redis.Int(conn.Do("HGET", "MP_"+upInfo.UploadID, "chunkindex"+strconv.Itoa(i)))
+		if err != nil || reply != 1 {
 			continue
 		}
 		sum++
@@ -118,11 +121,12 @@ func GetFileMpUploadSum(upInfo domain.MultipartUploadInfo) (int, error) {
 }
 
 func GetFailedChunk(uploadId string, chunkCount int) ([]int, error) {
-	red := GetData().red
+	conn := GetData().red.Get()
+	defer conn.Close()
 	res := make([]int, 0)
 	for i := 1; i <= chunkCount; i++ {
-		_, err := red.Get().Do("HGET", "MP_"+uploadId, "chunkindex"+strconv.Itoa(i))
-		if err != nil {
+		reply, err := redis.Int(conn.Do("HGET", "MP_"+uploadId, "chunkindex"+strconv.Itoa(i)))
+		if err != nil || reply != 1 {
 			res = append(res, i)
 			continue
 		}

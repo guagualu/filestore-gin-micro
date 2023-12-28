@@ -28,7 +28,7 @@ func Router(r *gin.Engine) {
 		g.POST("/fast/upload", service.FileFastUpload)
 		g.GET("/upload/mp/init", service.FileMpUploadInit)
 		g.POST("/upload/mp", service.FileMpUpload)
-		g.GET("/upload/completed", service.CompleteFileMpUpload)
+		g.POST("/upload/completed", service.CompleteFileMpUpload)
 		g.POST("/upload/retry/init", service.ReTryFileMpUploadInit)
 		g.POST("/download", service.Download)
 		g.GET("/pre/info", service.PreFileInfo)
