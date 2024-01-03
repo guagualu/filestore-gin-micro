@@ -25,6 +25,12 @@ type FileUploadReq struct {
 	UserUuid string `form:"user_uuid"  json:"user_uuid" binding:"required"`
 }
 
+type FileFastUploadReq struct {
+	UserUuid string `form:"user_uuid"  json:"user_uuid" binding:"required"`
+	FileHash string `form:"file_hash"  json:"file_hash" binding:"required"`
+	FileName string `form:"file_name"  json:"file_name" binding:"required"`
+}
+
 // MultipartUploadInfo : 初始化信息
 type MultipartUploadInitReq struct {
 	FileHash   string `form:"file_hash"  json:"file_hash" binding:"required"`
@@ -70,6 +76,44 @@ type DownloadReq struct {
 type PreFileInfoRes struct {
 	FileHash string `form:"file_hash"  json:"file_hash" binding:"required"`
 	FileSize int    `form:"file_size"  json:"file_size" binding:"required"`
+}
+type GetFileInfoReq struct {
+	FileHash string `form:"file_hash"  json:"file_hash" binding:"required"`
+}
+
+type GetFileInfoRes struct {
+	ID       uint   `json:"id"`
+	FileHash string `json:"file_hash"`
+	FileName string `json:"file_name"`
+	FileSize int64  ` json:"file_size"`
+	FileAddr string `json:"file_addr"`
+	CreateAt string `json:"create_at"`
+	UpdateAt string `json:"update_at"`
+}
+
+func GetFileInfo(c *gin.Context) {
+	var req GetFileInfoReq
+	err := c.ShouldBind(&req)
+	if err != nil {
+		c.JSON(400, response.NewRespone(errcode.ValidationFaild, "参数错误", nil))
+		return
+	}
+	info, err := biz.GetFileInfo(context.Background(), req.FileHash)
+	if err != nil {
+		c.JSON(500, response.NewRespone(errcode.FileGetFail, "文件信息获取错误", nil))
+		return
+	}
+	res := GetFileInfoRes{
+		ID:       info.ID,
+		FileHash: info.FileHash,
+		FileName: info.FileName,
+		FileSize: info.FileSize,
+		FileAddr: info.FileAddr,
+		CreateAt: info.CreateAt.String(),
+		UpdateAt: info.UpdateAt.String(),
+	}
+	c.JSON(200, response.NewRespone(sucesscode.Success, "文件信息获取成功", res))
+	return
 }
 
 func FileUpload(c *gin.Context) {
@@ -117,31 +161,14 @@ func FileUpload(c *gin.Context) {
 }
 
 func FileFastUpload(c *gin.Context) {
-	var req FileUploadReq
+	var req FileFastUploadReq
 	err := c.ShouldBind(&req)
 	if err != nil {
 		c.JSON(400, response.NewRespone(errcode.ValidationFaild, "参数错误", nil))
 		return
 	}
-	fileHeader, err := c.FormFile("file")
-	if err != nil {
-		c.JSON(400, response.NewRespone(errcode.FileGetFail, "文件获取错误", nil))
-		return
-	}
-	file, err := fileHeader.Open()
-	if err != nil {
-		c.JSON(400, response.NewRespone(errcode.FileGetFail, "文件获取错误", nil))
-		return
-	}
-	//将文件转为[]byte
-	buf := bytes.NewBuffer(nil)
-	_, err = io.Copy(buf, file)
-	if err != nil {
-		c.JSON(400, response.NewRespone(errcode.FileGetFail, "文件获取错误", nil))
-		return
-	}
 	//文件快传
-	err = biz.FastUpload(context.Background(), buf.Bytes(), fileHeader.Filename, req.UserUuid)
+	err = biz.FastUpload(context.Background(), req.FileHash, req.FileName, req.UserUuid)
 	if err != nil {
 		c.JSON(400, response.NewRespone(errcode.FileFastUploadFail, "文件快传错误", nil))
 		return
@@ -248,7 +275,7 @@ func CompleteFileMpUpload(c *gin.Context) {
 		return
 	}
 	if num != req.ChunkCount {
-		c.JSON(400, response.NewRespone(errcode.FileStoreFail, "正在分块上传中", MultipartUploadCompleteRsp{
+		c.JSON(200, response.NewRespone(errcode.FileStoreFail, "正在分块上传中", MultipartUploadCompleteRsp{
 			Completed: false,
 			Progress:  int((float32(num) / float32(req.ChunkCount)) * 100),
 		}))
@@ -273,7 +300,7 @@ func CompleteFileMpUpload(c *gin.Context) {
 		//将文件转为[]byte
 		file, err := os.Open(locatedAddr)
 		if err != nil {
-			log.Logger.Error("本地文件打开失败")
+			log.Logger.Error("本地文件打开失败 err:", err)
 			return
 		}
 		buf := bytes.NewBuffer(nil)

@@ -13,6 +13,7 @@ func Router(r *gin.Engine) {
 		})
 	})
 	g := r.Group("/user")
+	g.Use(middleware.Cors())
 	{
 		g.POST("/signUp", service.SignUp)
 		g.POST("/signIn", service.SignIn)

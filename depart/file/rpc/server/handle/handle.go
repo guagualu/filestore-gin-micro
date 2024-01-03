@@ -3,6 +3,7 @@ package handle
 import (
 	"context"
 	pb "fileStore/depart/file/proto"
+	"fileStore/internel/biz"
 	"fileStore/internel/data"
 	"fileStore/internel/domain"
 	"google.golang.org/grpc/codes"
@@ -42,4 +43,25 @@ func (s *FileRpcServiceStruct) DeleteFile(ctx context.Context, in *pb.FileReq) (
 		return &emptypb.Empty{}, status.New(codes.Aborted, "").Err()
 	}
 	return &emptypb.Empty{}, status.New(codes.OK, "").Err()
+}
+
+func (s *FileRpcServiceStruct) ListFile(ctx context.Context, in *pb.ListFileReq) (*pb.ListFileRes, error) {
+	info, err := biz.GetFileInfoList(ctx, in.FileHash)
+	if err != nil {
+		return nil, err
+	}
+	fileList := make([]*pb.FileRes, 0)
+	for _, v := range info {
+		fileList = append(fileList, &pb.FileRes{
+			FileHash:  v.FileHash,
+			FileName:  v.FileName,
+			FileSize:  v.FileSize,
+			LocatedAt: v.FileAddr,
+			Id:        int32(v.ID),
+			CreatedAt: v.CreateAt.String(),
+			UpdatedAt: v.UpdateAt.String(),
+		})
+	}
+	res := &pb.ListFileRes{FileList: fileList}
+	return res, nil
 }

@@ -30,8 +30,10 @@ type RenameUserFileReq struct {
 type ListUserFilesFileinfo struct {
 	FileHash  string `json:"file_hash"`
 	FileName  string `json:"file_name"`
+	FileSize  int    `json:"file_size"`
 	CreatedAt string `json:"created_at"`
 	UpdateAt  string `json:"update_at"`
+	DeletedAt string `json:"deleted_at"`
 }
 
 type ListUserFilesRes struct {
@@ -51,6 +53,16 @@ func ListUserFiles(c *gin.Context) {
 		c.JSON(500, response.NewRespone(errcode.ListUserFileErr, "获取用户文件列表失败", nil))
 		return
 	}
+	hashAndSizeMap := make(map[string]int)
+	fileHashs := make([]string, 0)
+	for _, v := range list {
+		fileHashs = append(fileHashs, v.FileHash)
+	}
+	err = biz.GetFileHashAndFileSizeMap(context.Background(), fileHashs, hashAndSizeMap)
+	if err != nil {
+		c.JSON(500, response.NewRespone(errcode.ListUserFileErr, "获取用户文件列表失败", nil))
+		return
+	}
 	listRes := make([]ListUserFilesFileinfo, 0)
 	for _, v := range list {
 		listRes = append(listRes, ListUserFilesFileinfo{
@@ -58,6 +70,7 @@ func ListUserFiles(c *gin.Context) {
 			FileName:  v.FileName,
 			CreatedAt: v.CreateAt.String(),
 			UpdateAt:  v.UpdateAt.String(),
+			FileSize:  hashAndSizeMap[v.FileHash],
 		})
 	}
 
@@ -121,6 +134,7 @@ func ListDeletedUserFiles(c *gin.Context) {
 			FileName:  v.FileName,
 			CreatedAt: v.CreateAt.String(),
 			UpdateAt:  v.UpdateAt.String(),
+			DeletedAt: v.Status.Time.String(),
 		})
 	}
 

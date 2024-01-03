@@ -93,7 +93,6 @@ func RabConsumer(callback func(message []byte) error) error {
 				rabchannel.Ack(d.DeliveryTag, false) //tag用于标记是那一条消息
 			}
 		}
-
 	}()
 	return nil
 }

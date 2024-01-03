@@ -44,6 +44,28 @@ func GetFileByFileHash(ctx context.Context, fileHash string) (*domain.File, erro
 		Status:   file.Status,
 	}, nil
 }
+func ListFileInfo(ctx context.Context, fileHashs []string) ([]*domain.File, error) {
+	db := GetData()
+	var file []File
+	if err := db.DB(ctx).Where("file_hash in ?", fileHashs).Find(&file).Error; err != nil {
+		log.Logger.Error("数据库错误:", err)
+		return nil, err
+	}
+	res := make([]*domain.File, 0)
+	for _, v := range file {
+		res = append(res, &domain.File{
+			ID:       v.ID,
+			FileHash: v.FileHash,
+			FileName: v.FileName,
+			FileSize: v.FileSize,
+			FileAddr: v.FileAddr,
+			CreateAt: v.CreateAt,
+			UpdateAt: v.UpdateAt,
+		})
+	}
+	return res, nil
+}
+
 func SaveFile(ctx context.Context, file domain.File) error {
 	db := GetData()
 	u := File{

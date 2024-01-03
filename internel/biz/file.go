@@ -81,9 +81,7 @@ func StoreFileOss(fileData []byte, fileInfo mq.MqFileInfo) error {
 	return nil
 }
 
-func FastUpload(ctx context.Context, fileData []byte, fileName string, userUuid string) error {
-	//计算hash
-	fileHash := encoding.Sha1(fileData)
+func FastUpload(ctx context.Context, fileHash string, fileName string, userUuid string) error {
 	//查找file表
 	_, err := data.GetFileByFileHash(ctx, fileHash)
 	if err != nil {
@@ -116,6 +114,9 @@ func FileMploadInit(mpFileInfo domain.MultipartUploadInfo) error {
 }
 
 func FileMploadLocal(fileData []byte, uploadId string, chunkIndex int) error {
+	//if chunkIndex == 1 || chunkIndex == 3 {
+	//	return errors.New("测试")
+	//}
 	// 存入本地 注意 要先存入本地 再写redis 因为有个completed检查可能会在响应未完成时就来请求redis
 	locatedAt := conf.GetConfig().LocalMpStore + "/" + uploadId + "/" + "chunk_" + strconv.Itoa(chunkIndex)
 	os.MkdirAll(conf.GetConfig().LocalMpStore+"/"+uploadId, 0666)
@@ -189,7 +190,9 @@ func FileMpUploadStore(uploadId, fileHash, fileName string, userUuid string, fil
 		log.Logger.Error("分布式事务执行失败,err:", err)
 		return "", err
 	}
-	return locatedAddr, nil
+	//针对后端程序的地址 上面的是针对脚本的相对地址
+	backAddr := "./static/tmp/" + fileHash
+	return backAddr, nil
 }
 
 // 分块文件进行合并
@@ -218,6 +221,10 @@ func CheckFailedMpUploadFile(uploadId string, chunkCount int) ([]int, error) {
 
 func GetFileInfo(ctx context.Context, fileHash string) (*domain.File, error) {
 	return data.GetFileByFileHash(ctx, fileHash)
+}
+
+func GetFileInfoList(ctx context.Context, fileHashs []string) ([]*domain.File, error) {
+	return data.ListFileInfo(ctx, fileHashs)
 }
 
 func GetUserFileInfo(ctx context.Context, fileHash, userUuid, fileName string) (*domain.UserFile, error) {

@@ -3,7 +3,6 @@ package router
 import (
 	"fileStore/internel/middleware"
 	"fileStore/internel/service"
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -14,16 +13,17 @@ func Router(r *gin.Engine) {
 		})
 	})
 	g := r.Group("/file")
-	// 使用gin插件支持跨域请求
-	g.Use(cors.New(cors.Config{
-		AllowOrigins:  []string{"http://localhost:8080"}, // []string{"http://localhost:8080"},
-		AllowMethods:  []string{"GET", "POST"},
-		AllowHeaders:  []string{"Origin", "Range", "x-requested-with", "Content-Type"},
-		ExposeHeaders: []string{"Content-Length", "Accept-Ranges", "Content-Range", "Content-Disposition"},
-		// AllowCredentials: true,
-	}))
+	//// 使用gin插件支持跨域请求
+	//g.Use(cors.New(cors.Config{
+	//	AllowOrigins:  []string{"*"}, // []string{"http://localhost:8080"},
+	//	AllowMethods:  []string{"GET", "POST"},
+	//	AllowHeaders:  []string{"Origin", "Range", "x-requested-with", "Content-Type"},
+	//	ExposeHeaders: []string{"Content-Length", "Accept-Ranges", "Content-Range", "Content-Disposition"},
+	//	// AllowCredentials: true,
+	//}))
 	g.Use(middleware.JWTMiddleware())
 	{
+		g.GET("/info", service.GetFileInfo)
 		g.POST("/upload", service.FileUpload)
 		g.POST("/fast/upload", service.FileFastUpload)
 		g.GET("/upload/mp/init", service.FileMpUploadInit)

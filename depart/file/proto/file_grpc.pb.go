@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v3.21.9
-// source: depart/file/proto/user-file.proto
+// source: depart/file/proto/file.proto
 
 package pb
 
@@ -27,6 +27,8 @@ type FileServiceClient interface {
 	SaveFile(ctx context.Context, in *FileReq, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	// 删除文件
 	DeleteFile(ctx context.Context, in *FileReq, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	// 删除文件
+	ListFile(ctx context.Context, in *ListFileReq, opts ...grpc.CallOption) (*ListFileRes, error)
 }
 
 type fileServiceClient struct {
@@ -55,6 +57,15 @@ func (c *fileServiceClient) DeleteFile(ctx context.Context, in *FileReq, opts ..
 	return out, nil
 }
 
+func (c *fileServiceClient) ListFile(ctx context.Context, in *ListFileReq, opts ...grpc.CallOption) (*ListFileRes, error) {
+	out := new(ListFileRes)
+	err := c.cc.Invoke(ctx, "/fileProto.FileService/ListFile", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // FileServiceServer is the server API for FileService service.
 // All implementations must embed UnimplementedFileServiceServer
 // for forward compatibility
@@ -63,6 +74,8 @@ type FileServiceServer interface {
 	SaveFile(context.Context, *FileReq) (*emptypb.Empty, error)
 	// 删除文件
 	DeleteFile(context.Context, *FileReq) (*emptypb.Empty, error)
+	// 删除文件
+	ListFile(context.Context, *ListFileReq) (*ListFileRes, error)
 	mustEmbedUnimplementedFileServiceServer()
 }
 
@@ -75,6 +88,9 @@ func (UnimplementedFileServiceServer) SaveFile(context.Context, *FileReq) (*empt
 }
 func (UnimplementedFileServiceServer) DeleteFile(context.Context, *FileReq) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteFile not implemented")
+}
+func (UnimplementedFileServiceServer) ListFile(context.Context, *ListFileReq) (*ListFileRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListFile not implemented")
 }
 func (UnimplementedFileServiceServer) mustEmbedUnimplementedFileServiceServer() {}
 
@@ -125,6 +141,24 @@ func _FileService_DeleteFile_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _FileService_ListFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListFileReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FileServiceServer).ListFile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/fileProto.FileService/ListFile",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FileServiceServer).ListFile(ctx, req.(*ListFileReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // FileService_ServiceDesc is the grpc.ServiceDesc for FileService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -140,7 +174,11 @@ var FileService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "DeleteFile",
 			Handler:    _FileService_DeleteFile_Handler,
 		},
+		{
+			MethodName: "ListFile",
+			Handler:    _FileService_ListFile_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "depart/file/proto/user-file.proto",
+	Metadata: "depart/file/proto/file.proto",
 }

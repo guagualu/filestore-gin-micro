@@ -143,6 +143,7 @@ func GetSoftDeletedUserFiles(ctx context.Context, userUuid string, page, pageSiz
 			FileName: v.FileName,
 			CreateAt: v.CreateAt,
 			UpdateAt: v.UpdateAt,
+			Status:   v.Status,
 		})
 	}
 	return res, sum, nil
