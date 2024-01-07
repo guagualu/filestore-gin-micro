@@ -28,6 +28,7 @@ type RenameUserFileReq struct {
 }
 
 type ListUserFilesFileinfo struct {
+	FileID    int    `json:"file_id"`
 	FileHash  string `json:"file_hash"`
 	FileName  string `json:"file_name"`
 	FileSize  int    `json:"file_size"`
@@ -66,6 +67,7 @@ func ListUserFiles(c *gin.Context) {
 	listRes := make([]ListUserFilesFileinfo, 0)
 	for _, v := range list {
 		listRes = append(listRes, ListUserFilesFileinfo{
+			FileID:    int(v.ID),
 			FileHash:  v.FileHash,
 			FileName:  v.FileName,
 			CreatedAt: v.CreateAt.String(),
@@ -130,6 +132,7 @@ func ListDeletedUserFiles(c *gin.Context) {
 	listRes := make([]ListUserFilesFileinfo, 0)
 	for _, v := range list {
 		listRes = append(listRes, ListUserFilesFileinfo{
+			FileID:    int(v.ID),
 			FileHash:  v.FileHash,
 			FileName:  v.FileName,
 			CreatedAt: v.CreateAt.String(),
@@ -155,6 +158,22 @@ func TrueDeletedUserFiles(c *gin.Context) {
 		return
 	}
 	err = biz.RealDeletedUserFileList(context.Background(), req.UserUuid, req.FileIds)
+	if err != nil {
+		c.JSON(500, response.NewRespone(errcode.DeleteUserFilesErr, "删除回收站用户文件失败", nil))
+		return
+	}
+	c.JSON(http.StatusOK, response.NewRespone(sucesscode.Success, "删除用户文件列表成功", nil))
+	return
+}
+
+func RecoverDeletedUserFiles(c *gin.Context) {
+	var req DeletedUserFilesReq
+	err := c.ShouldBind(&req)
+	if err != nil {
+		c.JSON(400, response.NewRespone(errcode.ValidationFaild, "参数错误", nil))
+		return
+	}
+	err = biz.RecoverDeletedUserFileList(context.Background(), req.UserUuid, req.FileIds)
 	if err != nil {
 		c.JSON(500, response.NewRespone(errcode.DeleteUserFilesErr, "删除回收站用户文件失败", nil))
 		return

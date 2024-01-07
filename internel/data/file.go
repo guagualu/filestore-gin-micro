@@ -6,6 +6,7 @@ import (
 	"fileStore/internel/domain"
 	"fileStore/internel/pkg/code/errcode"
 	"fileStore/log"
+	"fmt"
 	"github.com/gomodule/redigo/redis"
 	"gorm.io/gorm"
 	"strconv"
@@ -148,6 +149,8 @@ func GetFailedChunk(uploadId string, chunkCount int) ([]int, error) {
 	res := make([]int, 0)
 	for i := 1; i <= chunkCount; i++ {
 		reply, err := redis.Int(conn.Do("HGET", "MP_"+uploadId, "chunkindex"+strconv.Itoa(i)))
+		fmt.Println(reply)
+		fmt.Println(err)
 		if err != nil || reply != 1 {
 			res = append(res, i)
 			continue

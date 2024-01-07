@@ -15,6 +15,7 @@ func Router(r *gin.Engine) {
 		g.POST("/delete", service.DeletedUserFiles)
 		g.POST("/clash/list", service.ListDeletedUserFiles)
 		g.POST("/clash/delete", service.TrueDeletedUserFiles)
+		g.POST("/clash/recover", service.RecoverDeletedUserFiles)
 	}
 
 }

@@ -6,6 +6,7 @@ import (
 	"fileStore/internel/pkg/code/errcode"
 	"fileStore/log"
 	"gorm.io/gorm"
+	"strings"
 	"time"
 )
 
@@ -28,6 +29,9 @@ func SaveUserFile(ctx context.Context, userFile domain.UserFile) error {
 	}
 	if err := db.DB(ctx).Omit("created_at", "updated_at").Create(&uf).Error; err != nil {
 		log.Logger.Error("SaveUserFile err:", err)
+		if strings.Contains(err.Error(), "duplicate") {
+			return nil
+		}
 		return errcode.WithCode(errcode.Database_err, "数据库错误")
 	}
 	return nil
@@ -92,7 +96,7 @@ func ListUserFiles(ctx context.Context, userUuid string, page, pageSize int) ([]
 
 func DeleteUserFile(ctx context.Context, userFile domain.UserFile) error {
 	db := GetData()
-	if err := db.DB(ctx).Where("file_hash = ?and user_uuid = ?", userFile.FileHash, userFile.UserUuid).Delete(&File{}).Error; err != nil {
+	if err := db.DB(ctx).Where("file_hash = ? and user_uuid = ?", userFile.FileHash, userFile.UserUuid).Delete(&UserFile{}).Error; err != nil {
 		log.Logger.Error("DeleteUserFile err:", err)
 		return errcode.WithCode(errcode.Database_err, "数据库错误")
 	}
@@ -149,9 +153,27 @@ func GetSoftDeletedUserFiles(ctx context.Context, userUuid string, page, pageSiz
 	return res, sum, nil
 }
 
+func RealDeleteUserFileByHash(ctx context.Context, fileHash, fileName string, userUuid string) error {
+	db := GetData()
+	if err := db.DB(ctx).Unscoped().Where("file_hash = ? and file_name = ? and user_uuid = ?", fileHash, fileName, userUuid).Delete(&UserFile{}).Error; err != nil {
+		log.Logger.Error("DeleteUserFile err:", err)
+		return errcode.WithCode(errcode.Database_err, "数据库错误")
+	}
+	return nil
+}
+
 func RealDeleteUserFiles(ctx context.Context, fileIds []int, userUuid string) error {
 	db := GetData()
 	if err := db.DB(ctx).Unscoped().Where("id in ? and user_uuid = ?", fileIds, userUuid).Delete(&UserFile{}).Error; err != nil {
+		log.Logger.Error("DeleteUserFile err:", err)
+		return errcode.WithCode(errcode.Database_err, "数据库错误")
+	}
+	return nil
+}
+
+func RecoverDeleteUserFiles(ctx context.Context, fileIds []int, userUuid string) error {
+	db := GetData()
+	if err := db.DB(ctx).Table("user_file").Unscoped().Where("id in ? and user_uuid = ?", fileIds, userUuid).Update("status", nil).Error; err != nil {
 		log.Logger.Error("DeleteUserFile err:", err)
 		return errcode.WithCode(errcode.Database_err, "数据库错误")
 	}

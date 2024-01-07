@@ -67,6 +67,11 @@ type ReTryFileMpUploadInitRsp struct {
 	ChunkIndexArray []int ` json:"chunk_index_array"`
 }
 
+type DownloadRsp struct {
+	Url       string `json:"url"`
+	StoreType string `json:"store_type"`
+}
+
 type DownloadReq struct {
 	FileHash string `form:"file_hash"  json:"file_hash" binding:"required"`
 	UserUuid string `form:"user_uuid"  json:"user_uuid" binding:"required"`
@@ -146,17 +151,17 @@ func FileUpload(c *gin.Context) {
 		c.JSON(400, response.NewRespone(errcode.FileStoreFail, "文件获取错误", nil))
 		return
 	}
-	//进行转存 转存完成后的file表的更新
-	fileInfo := mq.MqFileInfo{
-		FileHash:    fileMeta.FileHash,
-		FileName:    fileMeta.FileName,
-		CurLocateAt: fileMeta.FileAddr,
-	}
-	err = biz.StoreFileOss(buf.Bytes(), fileInfo)
-	if err != nil {
-		c.JSON(400, response.NewRespone(errcode.FileStoreFail, "文件转存失败", nil))
-		return
-	}
+	////进行转存 转存完成后的file表的更新
+	//fileInfo := mq.MqFileInfo{
+	//	FileHash:    fileMeta.FileHash,
+	//	FileName:    fileMeta.FileName,
+	//	CurLocateAt: fileMeta.FileAddr,
+	//}
+	//err = biz.StoreFileOss(buf.Bytes(), fileInfo)
+	//if err != nil {
+	//	c.JSON(400, response.NewRespone(errcode.FileStoreFail, "文件转存失败", nil))
+	//	return
+	//}
 	c.JSON(200, response.NewRespone(sucesscode.Success, "文件存储成功", fileMeta))
 }
 
@@ -170,7 +175,7 @@ func FileFastUpload(c *gin.Context) {
 	//文件快传
 	err = biz.FastUpload(context.Background(), req.FileHash, req.FileName, req.UserUuid)
 	if err != nil {
-		c.JSON(400, response.NewRespone(errcode.FileFastUploadFail, "文件快传错误", nil))
+		c.JSON(500, response.NewRespone(errcode.FileFastUploadFail, "文件快传错误", err))
 		return
 	}
 	c.JSON(200, response.NewRespone(sucesscode.Success, "文件快传成功", nil))
@@ -354,6 +359,9 @@ func Download(c *gin.Context) {
 	} else if strings.HasPrefix(fileInfo.FileAddr, "oss") {
 		// oss中的文件
 		signedURL := oss.DownloadURL(fileInfo.FileAddr)
-		c.Data(http.StatusOK, "application/octet-stream", []byte(signedURL))
+		c.JSON(http.StatusOK, response.NewRespone(sucesscode.Success, "oss下载url", DownloadRsp{
+			Url:       signedURL,
+			StoreType: "oss",
+		}))
 	}
 }

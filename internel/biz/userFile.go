@@ -28,6 +28,10 @@ func RealDeletedUserFileList(ctx context.Context, userUuid string, fileIds []int
 	return data.RealDeleteUserFiles(ctx, fileIds, userUuid)
 }
 
+func RecoverDeletedUserFileList(ctx context.Context, userUuid string, fileIds []int) error {
+	return data.RecoverDeleteUserFiles(ctx, fileIds, userUuid)
+}
+
 // 获取hash与 size 映射的map
 func GetFileHashAndFileSizeMap(ctx context.Context, fileHashs []string, destMap map[string]int) error {
 	files, err := client.GetFileClient().ListFile(ctx, &filePb.ListFileReq{FileHash: fileHashs})
