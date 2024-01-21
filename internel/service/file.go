@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fileStore/conf"
 	"fileStore/internel/biz"
 	"fileStore/internel/domain"
@@ -13,12 +14,15 @@ import (
 	"fileStore/internel/pkg/encoding"
 	"fileStore/internel/pkg/response"
 	"fileStore/log"
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"io"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 type FileUploadReq struct {
@@ -94,6 +98,12 @@ type GetFileInfoRes struct {
 	FileAddr string `json:"file_addr"`
 	CreateAt string `json:"create_at"`
 	UpdateAt string `json:"update_at"`
+}
+
+type ChatReq struct {
+	SendUserUuid string `form:"send_user_uuid" json:"send_user_uuid" binding:"required"`
+	ToUserUuid   string `form:"to_user_uuid" json:"to_user_uuid" binding:"required"`
+	SessionUuid  string `form:"session_uuid" json:"session_uuid" binding:"required"`
 }
 
 func GetFileInfo(c *gin.Context) {
@@ -364,4 +374,84 @@ func Download(c *gin.Context) {
 			StoreType: "oss",
 		}))
 	}
+}
+
+func Chat(c *gin.Context) {
+	req := ChatReq{}
+	err := c.ShouldBind(&req)
+	if err != nil {
+		c.JSON(400, response.NewRespone(errcode.ValidationFaild, "参数错误", nil))
+		return
+	}
+	conn, err := (&websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool { // CheckOrigin解决跨域问题
+			return true
+		}}).Upgrade(c.Writer, c.Request, nil) // 升级成ws协议
+	imChannelMap := domain.GetImChannelMap()
+	//创建channel
+	sendChannel := make(chan domain.ImSendMsg)
+	toChnnel := make(chan domain.ImSendMsg)
+	domain.StoreKey(req.SessionUuid+req.SendUserUuid, sendChannel)
+	domain.StoreKey(req.SessionUuid+req.ToUserUuid, toChnnel)
+	go Read(conn, &imChannelMap, req.SessionUuid+req.SendUserUuid, req.SessionUuid+req.ToUserUuid)
+	go Write(conn, &imChannelMap, req.SessionUuid+req.SendUserUuid)
+}
+
+func Read(conn *websocket.Conn, imChannelMap *sync.Map, sendKey, toKey string) {
+	for {
+		conn.PongHandler() //心跳？
+		sendMsg := domain.ImSendMsg{}
+		// _,msg,_:=c.Socket.ReadMessage()
+		err := conn.ReadJSON(&sendMsg) // 读取json格式，如果不是json格式，会报错
+		fmt.Println(sendMsg)
+		if err != nil {
+			log.Logger.Error("im read err:", err)
+			break
+		}
+		//保存到mysql
+		msg := domain.ImSessionContent{
+			SessionUuid:    sendMsg.SessionUuid,
+			SendUserUuid:   sendMsg.SendUserUuid,
+			ToUserUuid:     sendMsg.ToUserUuid,
+			MessageType:    sendMsg.MessageType,
+			MessageContent: sendMsg.Message,
+		}
+		err = biz.SaveASessionContent(context.Background(), msg)
+		if err != nil {
+			log.Logger.Error("im read err:", err)
+			break
+		}
+		//刷新session的更新事件
+		err = biz.UpdateSessionUpdateTime(context.Background(), msg.SessionUuid)
+		if err != nil {
+			log.Logger.Error("im read err:", err)
+			break
+		}
+		//写入channel进行通知
+		toChan := domain.GetKey(sendMsg.SessionUuid + sendMsg.ToUserUuid)
+		toChan <- sendMsg
+	}
+	//删除channel
+	domain.DeleteKey(sendKey)
+	domain.DeleteKey(toKey)
+	_ = conn.Close()
+}
+
+func Write(conn *websocket.Conn, imChannelMap *sync.Map, reciveKey string) {
+	defer func() {
+		_ = conn.Close()
+	}()
+	for {
+		reciveChannel := domain.GetKey(reciveKey)
+		message, ok := <-reciveChannel
+		if !ok {
+			_ = conn.WriteMessage(websocket.CloseMessage, []byte{})
+			return
+		}
+		fmt.Println(message.ToUserUuid, "接受消息:", message.Message)
+		res := response.NewRespone(sucesscode.Success, "聊天写入成功", message)
+		msg, _ := json.Marshal(res)
+		_ = conn.WriteMessage(websocket.TextMessage, msg)
+	}
+
 }

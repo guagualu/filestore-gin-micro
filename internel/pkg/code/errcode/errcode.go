@@ -19,6 +19,7 @@ const (
 	ListUserFileErr
 	DeleteUserFilesErr
 	RenameUserFileErr
+	GetSessionAllErr
 )
 
 type withCode struct {

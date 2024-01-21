@@ -5,11 +5,11 @@ go 1.20
 require (
 	github.com/aliyun/aliyun-oss-go-sdk v3.0.1+incompatible
 	github.com/dtm-labs/client v1.18.7
-	github.com/gin-contrib/cors v1.5.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/gomodule/redigo v1.8.9
 	github.com/google/uuid v1.4.0
+	github.com/gorilla/websocket v1.5.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/viper v1.18.2
 	github.com/streadway/amqp v1.1.0
@@ -89,6 +89,7 @@ require (
 	google.golang.org/genproto v0.0.0-20231106174013-bbf56f31fb17 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20231106174013-bbf56f31fb17 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231120223509-83a465c0220f // indirect
+	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
