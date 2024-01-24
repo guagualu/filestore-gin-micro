@@ -32,7 +32,11 @@ func Router(r *gin.Engine) {
 		g.POST("/upload/retry/init", service.ReTryFileMpUploadInit)
 		g.POST("/download", service.Download)
 		g.GET("/pre/info", service.PreFileInfo)
-		g.GET("/chat", service.Chat)
+		g.POST("/createSession", service.CreateSession)
+		g.GET("/getUserAllSession", service.GetUserAllSession)
+		g.GET("/getASessionInfo", service.GetUserASessionInfo)
+		g.GET("/existSession", service.IsSessionExit)
 	}
+	r.GET("/chat", service.Chat)
 
 }

@@ -32,6 +32,14 @@ func RecoverDeletedUserFileList(ctx context.Context, userUuid string, fileIds []
 	return data.RecoverDeleteUserFiles(ctx, fileIds, userUuid)
 }
 
+func GetUserFile(ctx context.Context, userFile domain.UserFile) (*domain.UserFile, error) {
+	return data.GetUserFiles(ctx, userFile)
+}
+
+func CreateUserFile(ctx context.Context, userFile domain.UserFile) error {
+	return data.SaveUserFile(ctx, userFile)
+}
+
 // 获取hash与 size 映射的map
 func GetFileHashAndFileSizeMap(ctx context.Context, fileHashs []string, destMap map[string]int) error {
 	files, err := client.GetFileClient().ListFile(ctx, &filePb.ListFileReq{FileHash: fileHashs})

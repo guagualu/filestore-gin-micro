@@ -10,6 +10,8 @@ func Router(r *gin.Engine) {
 	g := r.Group("/user-file")
 	g.Use(middleware.JWTMiddleware())
 	{
+		g.GET("/get/userfile", service.GetUserFile)
+		g.POST("/create", service.CreateUserFile)
 		g.POST("/list", service.ListUserFiles)
 		g.POST("/rename", service.RenameUserFile)
 		g.POST("/delete", service.DeletedUserFiles)

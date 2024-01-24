@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fileStore/internel/biz"
+	"fileStore/internel/domain"
 	"fileStore/internel/pkg/code/errcode"
 	"fileStore/internel/pkg/code/sucesscode"
 	"fileStore/internel/pkg/response"
@@ -40,6 +41,61 @@ type ListUserFilesFileinfo struct {
 type ListUserFilesRes struct {
 	FileList []ListUserFilesFileinfo `json:"file_list"`
 	Count    int                     `json:"count"`
+}
+
+type GetUserFileReq struct {
+	UserUuid string `form:"user_uuid" json:"user_uuid"`
+	FileHash string `form:"file_hash" json:"file_hash"`
+	FileName string `form:"file_name" json:"file_name"`
+}
+
+type GetUserFileRes struct {
+	ID       uint   `json:"id"`
+	FileHash string `json:"file_hash"`
+	UserUuid string `json:"user_uuid"`
+	FileName string `json:"file_name"`
+	CreateAt string `json:"create_at"`
+	UpdateAt string `json:"update_at"`
+}
+
+func GetUserFile(c *gin.Context) {
+	var req GetUserFileReq
+	err := c.ShouldBind(&req)
+	if err != nil {
+		c.JSON(400, response.NewRespone(errcode.ValidationFaild, "参数错误", nil))
+		return
+	}
+	file, err := biz.GetUserFile(context.Background(), domain.UserFile{
+		FileHash: req.FileHash,
+		UserUuid: req.UserUuid,
+		FileName: req.FileName,
+	})
+	if err != nil {
+		c.JSON(500, response.NewRespone(errcode.UserFileGetFail, "获取用户文件失败", nil))
+		return
+	}
+	c.JSON(http.StatusOK, response.NewRespone(sucesscode.Success, "获取用户文件成功", file))
+	return
+}
+
+func CreateUserFile(c *gin.Context) {
+	var req GetUserFileReq
+	err := c.ShouldBind(&req)
+	if err != nil {
+		c.JSON(400, response.NewRespone(errcode.ValidationFaild, "参数错误", nil))
+		return
+	}
+	err = biz.CreateUserFile(context.Background(), domain.UserFile{
+		FileHash: req.FileHash,
+		UserUuid: req.UserUuid,
+		FileName: req.FileName,
+	})
+	if err != nil {
+		c.JSON(500, response.NewRespone(errcode.CreateUserFileFail, "创建用户文件失败", nil))
+		return
+	}
+	c.JSON(http.StatusOK, response.NewRespone(sucesscode.Success, "创建用户文件成功", nil))
+	return
 }
 
 func ListUserFiles(c *gin.Context) {

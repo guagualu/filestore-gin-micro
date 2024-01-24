@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fileStore/internel/domain"
-	"fileStore/internel/pkg/code/errcode"
 	"fileStore/internel/pkg/uuid"
 	"fileStore/log"
 	"github.com/gomodule/redigo/redis"
@@ -35,7 +34,7 @@ func CreatUser(ctx context.Context, user domain.User) error {
 	u.Uuid = uuid.NewUuid()
 	if err := db.DB(ctx).Omit("created_at", "updated_at", "next_expire_time").Create(&u).Error; err != nil {
 		log.Logger.Error("数据库错误:", err)
-		return errcode.WithCode(errcode.Database_err, "数据库错误")
+		return err
 	}
 	return nil
 }
@@ -45,10 +44,10 @@ func GetUserByPhoneAndPsd(ctx context.Context, user domain.User) (*domain.User, 
 	var u User
 	if err := db.DB(ctx).Where("mobile = ? and password = ?", user.Mobile, user.Password).First(&u).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errcode.WithCode(errcode.NotFoundUser, "未找到用户")
+			return nil, err
 		}
 		log.Logger.Error("数据库错误:", err)
-		return nil, errcode.WithCode(errcode.Database_err, "数据库错误")
+		return nil, err
 	}
 	res := new(domain.User)
 	res.Email = u.Email
@@ -62,8 +61,9 @@ func GetUserByPhoneAndPsd(ctx context.Context, user domain.User) (*domain.User, 
 
 func GetUserInfoByCache(ctx context.Context, userUuid string) (*domain.User, error) {
 	user := new(domain.User)
-	rdb := GetData().red
-	res, err := redis.String(rdb.Get().Do("GET", "user_"+userUuid))
+	conn := GetData().red.Get()
+	defer conn.Close()
+	res, err := redis.String(conn.Do("GET", "user_"+userUuid))
 	if err != nil {
 		return nil, err
 	} else {
@@ -76,9 +76,10 @@ func GetUserInfoByCache(ctx context.Context, userUuid string) (*domain.User, err
 	}
 }
 func SetUserInfoByCache(ctx context.Context, userInfo domain.User) error {
-	rdb := GetData().red
+	conn := GetData().red.Get()
+	defer conn.Close()
 	info, _ := json.Marshal(userInfo)
-	_, err := rdb.Get().Do("SET", "user_"+userInfo.Uuid, info)
+	_, err := conn.Do("SET", "user_"+userInfo.Uuid, info)
 	if err != nil {
 		return err
 	}
@@ -89,9 +90,9 @@ func GetUserInfo(ctx context.Context, userUuid string) (*domain.User, error) {
 	var u User
 	if err := GetData().DB(ctx).Where("uuid = ?", userUuid).First(&u).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, errcode.WithCode(errcode.NotFoundUser, "没找到用户", nil)
+			return nil, err
 		}
-		return nil, errcode.WithCode(errcode.Database_err, "数据库错误", nil)
+		return nil, err
 	}
 	return &domain.User{
 		Id:       u.Id,
@@ -101,4 +102,26 @@ func GetUserInfo(ctx context.Context, userUuid string) (*domain.User, error) {
 		Password: u.Password,
 		Mobile:   u.Mobile,
 	}, nil
+}
+
+func ListUserInfoByMobile(ctx context.Context, mobiles []string) ([]domain.User, error) {
+	var u []User
+	if err := GetData().DB(ctx).Where("mobile in ?", mobiles).Find(&u).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, err
+		}
+		return nil, err
+	}
+	res := make([]domain.User, 0)
+	for _, v := range u {
+		res = append(res, domain.User{
+			Id:       v.Id,
+			Uuid:     v.Uuid,
+			NickName: v.NickName,
+			Email:    v.Email,
+			Password: v.Password,
+			Mobile:   v.Mobile,
+		})
+	}
+	return res, nil
 }

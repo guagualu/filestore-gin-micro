@@ -40,7 +40,7 @@ func GetUserInfo(ctx context.Context, userUuid string) (*domain.User, error) {
 		return nil, err
 	}
 	user, err := data.GetUserInfoByCache(ctx, userUuid)
-	if err == nil {
+	if err == nil && user != nil {
 		return user, nil
 	}
 	if err != nil && errors.Is(err, redis.ErrNil) {
@@ -56,4 +56,31 @@ func GetUserInfo(ctx context.Context, userUuid string) (*domain.User, error) {
 		return nil, err
 	}
 
+}
+
+func AddFriend(ctx context.Context, userAMobile, userBMobile string) error {
+	return data.CreatFriendShip(ctx, domain.Friends{
+		UserAMobile: userAMobile,
+		UserBMobile: userBMobile,
+	})
+
+}
+
+func GetUserFriends(ctx context.Context, userMobile string) ([]domain.User, error) {
+	//先获取userFriends的mobile
+	friends, err := data.GetUserFriendsByUserPhone(ctx, userMobile)
+	if err != nil {
+		return nil, err
+	}
+	mobiles := make([]string, 0)
+	for _, v := range friends {
+		var friendPhone string
+		if v.UserAMobile != userMobile {
+			friendPhone = v.UserAMobile
+		} else {
+			friendPhone = v.UserBMobile
+		}
+		mobiles = append(mobiles, friendPhone)
+	}
+	return data.ListUserInfoByMobile(ctx, mobiles)
 }

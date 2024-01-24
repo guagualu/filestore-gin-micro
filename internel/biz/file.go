@@ -7,6 +7,7 @@ import (
 	"fileStore/depart/file/client"
 	filePb "fileStore/depart/file/proto"
 	userFilePb "fileStore/depart/user-file/proto"
+	userPb "fileStore/depart/user/proto"
 	"fileStore/internel/data"
 	"fileStore/internel/domain"
 	"fileStore/internel/middleware/mq"
@@ -246,4 +247,21 @@ func GetUserFileInfo(ctx context.Context, fileHash, userUuid, fileName string) (
 		CreateAt: createdAt,
 		UpdateAt: updatedAt,
 	}, nil
+}
+
+func FileServerGetUserInfo(ctx context.Context, userUuid string) (*domain.User, error) {
+	info, err := client.GetUserClient().UserInfo(ctx, &userPb.ReqUserInfo{
+		Uuid: userUuid,
+	})
+	if err != nil {
+		return nil, err
+	}
+	res := domain.User{
+		Id:       uint(info.Id),
+		Uuid:     info.Uuid,
+		NickName: info.NickName,
+		Email:    info.Email,
+		Mobile:   info.Mobile,
+	}
+	return &res, nil
 }

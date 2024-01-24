@@ -20,6 +20,12 @@ const (
 	DeleteUserFilesErr
 	RenameUserFileErr
 	GetSessionAllErr
+	CreateSessionErr
+	GetSessionInfoErr
+	UserFileGetFail
+	CreateUserFileFail
+	AddFriendErr
+	GetFriendsErr
 )
 
 type withCode struct {

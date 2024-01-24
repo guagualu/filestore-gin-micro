@@ -5,6 +5,12 @@ import (
 	"time"
 )
 
+type ImSessionFileContent struct {
+	FileName   string `json:"file_name"`
+	FileHash   string `json:"file_hash"`
+	FileSender string `json:"file_sender"`
+}
+
 type ImSessionContent struct {
 	Id             uint      `json:"id"`
 	SessionUuid    string    `json:"session_uuid"`
@@ -26,11 +32,13 @@ type ImSession struct {
 }
 
 type ImSendMsg struct {
-	SessionUuid  string `json:"session_uuid"`   // 业务主键
-	SendUserUuid string `json:"send_user_uuid"` // 发送者uuid
-	ToUserUuid   string `json:"to_user_uuid"`
-	Message      string `json:"message"`
-	MessageType  int    `json:"message_type"`
+	SessionUuid      string `json:"session_uuid"` // 业务主键
+	SessionContentId int    `json:"session_content_id"`
+	SendUserUuid     string `json:"send_user_uuid"`     // 发送者uuid
+	SendUserNickName string `json:"send_user_nickname"` // 发送者uuid
+	ToUserUuid       string `json:"to_user_uuid"`
+	Message          string `json:"message"`
+	MessageType      int    `json:"message_type"`
 }
 
 // singel 单例

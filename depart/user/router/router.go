@@ -21,6 +21,8 @@ func Router(r *gin.Engine) {
 	g.Use(middleware.JWTMiddleware())
 	{
 		g.GET("/info", service.GetUserInfo)
+		g.POST("/add/friend", service.AddFriend)
+		g.GET("/get/friends", service.GetFriends)
 	}
 
 }

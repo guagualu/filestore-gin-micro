@@ -17,7 +17,7 @@ type imSession struct {
 	UpdatedAt   time.Time `gorm:"column:updated_at;type:datetime comment '更新时间';not null;default:CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP" json:"updated_at"`
 }
 
-func CreateSession(ctx context.Context, userAUuid, userBUuid string) error {
+func CreateSession(ctx context.Context, userAUuid, userBUuid string) (*domain.ImSession, error) {
 	line := imSession{
 		SessionUuid: uuid.NewUuid(),
 		UserAUuid:   userAUuid,
@@ -25,9 +25,17 @@ func CreateSession(ctx context.Context, userAUuid, userBUuid string) error {
 	}
 	if err := GetData().DB(ctx).Create(&line).Error; err != nil {
 		log.Logger.Error("CreateSession err:", err)
-		return err
+		return nil, err
 	}
-	return nil
+	res := domain.ImSession{
+		Id:          line.Id,
+		SessionUuid: line.SessionUuid,
+		UserAUuid:   line.UserAUuid,
+		UserBUuid:   line.UserBUuid,
+		CreatedAt:   line.CreatedAt,
+		UpdatedAt:   line.UpdatedAt,
+	}
+	return &res, nil
 }
 
 func ListUserSessionsByUserUuid(ctx context.Context, userUuid string) ([]domain.ImSession, error) {
@@ -56,4 +64,21 @@ func UpdateUserSessionUpdatedAtBySessionUuid(ctx context.Context, sessionUuid st
 		return err
 	}
 	return nil
+}
+
+func GetSessionByUsers(ctx context.Context, userAUuid, userBUuid string) (*domain.ImSession, error) {
+	twoUser := []string{userAUuid, userBUuid}
+	var s imSession
+	if err := GetData().DB(ctx).Table("im_session").Where("user_a_uuid in ? and user_b_uuid in ?", twoUser, twoUser).First(&s).Error; err != nil {
+		log.Logger.Error("UpdateUserSessionUpdatedAtBySessionUuid err:", err)
+		return nil, err
+	}
+	return &domain.ImSession{
+		Id:          s.Id,
+		SessionUuid: s.SessionUuid,
+		UserAUuid:   s.UserAUuid,
+		UserBUuid:   s.UserBUuid,
+		CreatedAt:   s.CreatedAt,
+		UpdatedAt:   s.UpdatedAt,
+	}, nil
 }

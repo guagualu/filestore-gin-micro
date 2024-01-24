@@ -3,7 +3,6 @@ package data
 import (
 	"context"
 	"fileStore/internel/domain"
-	"fileStore/internel/pkg/uuid"
 	"fileStore/log"
 	"time"
 )
@@ -21,7 +20,7 @@ type imSessionContent struct {
 
 func GetSessionAllMessage(ctx context.Context, SessionUuid string) ([]domain.ImSessionContent, error) {
 	sessionRes := make([]imSessionContent, 0)
-	if err := GetData().DB(ctx).Where("session_uuid = ?", SessionUuid).Find(&sessionRes).Error; err != nil {
+	if err := GetData().DB(ctx).Debug().Where("session_uuid = ?", SessionUuid).Find(&sessionRes).Error; err != nil {
 		log.Logger.Error("GetSessionAllMessage err:", err)
 		return nil, err
 	}
@@ -41,9 +40,9 @@ func GetSessionAllMessage(ctx context.Context, SessionUuid string) ([]domain.ImS
 	return res, nil
 }
 
-func CreateASessionMessage(ctx context.Context, message domain.ImSessionContent) error {
+func CreateASessionMessage(ctx context.Context, message domain.ImSessionContent) (int, error) {
 	msg := imSessionContent{
-		SessionUuid:    uuid.NewUuid(),
+		SessionUuid:    message.SessionUuid,
 		SendUserUuid:   message.SendUserUuid,
 		ToUserUuid:     message.ToUserUuid,
 		MessageType:    message.MessageType,
@@ -51,7 +50,7 @@ func CreateASessionMessage(ctx context.Context, message domain.ImSessionContent)
 	}
 	if err := GetData().DB(ctx).Create(&msg).Error; err != nil {
 		log.Logger.Error("SaveASessionMessage err:", err)
-		return err
+		return 0, err
 	}
-	return nil
+	return int(msg.Id), nil
 }

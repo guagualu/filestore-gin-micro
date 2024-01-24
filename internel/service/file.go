@@ -22,7 +22,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 )
 
 type FileUploadReq struct {
@@ -104,6 +103,49 @@ type ChatReq struct {
 	SendUserUuid string `form:"send_user_uuid" json:"send_user_uuid" binding:"required"`
 	ToUserUuid   string `form:"to_user_uuid" json:"to_user_uuid" binding:"required"`
 	SessionUuid  string `form:"session_uuid" json:"session_uuid" binding:"required"`
+}
+
+type CreateSessionReq struct {
+	UserAUuid string `form:"user_a_uuid" json:"user_a_uuid" binding:"required"`
+	UserBUuid string `form:"user_b_uuid" json:"user_b_uuid" binding:"required"`
+}
+
+type GetUserAllSessionReq struct {
+	UserUuid string `form:"user_uuid" json:"user_uuid" binding:"required"`
+}
+
+type GetUserAllSessionStructRes struct {
+	Id          uint        `json:"id"`           // 物理主键
+	SessionUuid string      `json:"session_uuid"` // 业务主键
+	ChatUser    domain.User `json:"chat_user"`    // 接受者uuid
+	CreatedAt   string      `json:"created_at"`
+	UpdatedAt   string      `json:"updated_at"`
+}
+
+type GetUserAllSessionRes struct {
+	List []GetUserAllSessionStructRes `json:"list"`
+}
+
+type GetUserASessionInfoReq struct {
+	SessionUuid string `form:"session_uuid" json:"session_uuid" binding:"required"`
+}
+type GetUserASessionInfoStructRes struct {
+	Id             uint        `json:"id"`
+	SessionUuid    string      `json:"session_uuid"`
+	SendUser       domain.User `json:"send_user"`    // 发送者
+	ToUser         domain.User `json:"to_user"`      // 接受者
+	MessageType    int         `json:"message_type"` //0为普通文本消息，1为文件消息 content存的是文件hash
+	MessageContent string      `json:"message_content"`
+	CreatedAt      string      `json:"created_at"`
+	UpdatedAt      string      `json:"updated_at"`
+}
+type GetUserASessionInfoRes struct {
+	ContentList []GetUserASessionInfoStructRes `json:"content_list"`
+}
+
+type IsSessionExitReq struct {
+	UserAUuid string `form:"user_a_uuid" json:"user_a_uuid" binding:"required"`
+	UserBUuid string `form:"user_b_uuid" json:"user_b_uuid" binding:"required"`
 }
 
 func GetFileInfo(c *gin.Context) {
@@ -387,17 +429,122 @@ func Chat(c *gin.Context) {
 		CheckOrigin: func(r *http.Request) bool { // CheckOrigin解决跨域问题
 			return true
 		}}).Upgrade(c.Writer, c.Request, nil) // 升级成ws协议
-	imChannelMap := domain.GetImChannelMap()
+	//校验token
+	tokenStruct := struct {
+		Token string `json:"token"`
+	}{}
+	conn.ReadJSON(&tokenStruct)
+	fmt.Println(tokenStruct.Token)
 	//创建channel
-	sendChannel := make(chan domain.ImSendMsg)
-	toChnnel := make(chan domain.ImSendMsg)
-	domain.StoreKey(req.SessionUuid+req.SendUserUuid, sendChannel)
-	domain.StoreKey(req.SessionUuid+req.ToUserUuid, toChnnel)
-	go Read(conn, &imChannelMap, req.SessionUuid+req.SendUserUuid, req.SessionUuid+req.ToUserUuid)
-	go Write(conn, &imChannelMap, req.SessionUuid+req.SendUserUuid)
+	sendChannel := make(chan domain.ImSendMsg, 100)
+	toChnnel := make(chan domain.ImSendMsg, 100)
+	if domain.GetKey(req.SessionUuid+req.SendUserUuid) == nil {
+		domain.StoreKey(req.SessionUuid+req.SendUserUuid, sendChannel)
+	}
+	if domain.GetKey(req.SessionUuid+req.ToUserUuid) == nil {
+		domain.StoreKey(req.SessionUuid+req.ToUserUuid, toChnnel)
+	}
+	go Read(conn, req.SessionUuid+req.SendUserUuid, req.SessionUuid+req.ToUserUuid)
+	go Write(conn, req.SessionUuid+req.SendUserUuid)
 }
 
-func Read(conn *websocket.Conn, imChannelMap *sync.Map, sendKey, toKey string) {
+type CreateSessionRes struct {
+	SessionUuid string `json:"session_uuid"`
+}
+
+func CreateSession(c *gin.Context) {
+	req := CreateSessionReq{}
+	err := c.ShouldBind(&req)
+	if err != nil {
+		c.JSON(400, response.NewRespone(errcode.ValidationFaild, "参数错误", nil))
+		return
+	}
+	imsession, err := biz.CreateSession(context.Background(), req.UserAUuid, req.UserBUuid)
+	if err != nil {
+		c.JSON(400, response.NewRespone(errcode.CreateSessionErr, "创建session错误", nil))
+		return
+	}
+	c.JSON(200, response.NewRespone(sucesscode.Success, "创建session成功", CreateSessionRes{SessionUuid: imsession.SessionUuid}))
+}
+
+func GetUserAllSession(c *gin.Context) {
+	req := GetUserAllSessionReq{}
+	err := c.ShouldBind(&req)
+	if err != nil {
+		c.JSON(400, response.NewRespone(errcode.ValidationFaild, "参数错误", nil))
+		return
+	}
+	list, err := biz.GetUserAllSession(context.Background(), req.UserUuid)
+	if err != nil {
+		c.JSON(400, response.NewRespone(errcode.GetSessionAllErr, "获取用户session错误", nil))
+		return
+	}
+	res := GetUserAllSessionRes{}
+	res.List = make([]GetUserAllSessionStructRes, 0)
+	for _, v := range list {
+		chatToUuid := ""
+		//如果不是那么就是对方
+		if v.UserAUuid != req.UserUuid {
+			chatToUuid = v.UserAUuid
+		} else {
+			chatToUuid = v.UserBUuid
+		}
+		chatToUser, err := biz.FileServerGetUserInfo(context.Background(), chatToUuid)
+		if err != nil {
+			c.JSON(400, response.NewRespone(errcode.GetSessionAllErr, "获取用户session错误", nil))
+			return
+		}
+		res.List = append(res.List, GetUserAllSessionStructRes{
+			Id:          v.Id,
+			SessionUuid: v.SessionUuid,
+			ChatUser:    *chatToUser,
+			CreatedAt:   v.CreatedAt.String(),
+			UpdatedAt:   v.UpdatedAt.String(),
+		})
+	}
+	c.JSON(200, response.NewRespone(sucesscode.Success, "获取用户session成功", res))
+}
+
+func GetUserASessionInfo(c *gin.Context) {
+	req := GetUserASessionInfoReq{}
+	err := c.ShouldBind(&req)
+	if err != nil {
+		c.JSON(400, response.NewRespone(errcode.ValidationFaild, "参数错误", nil))
+		return
+	}
+	list, err := biz.GetUserASession(context.Background(), req.SessionUuid)
+	if err != nil {
+		c.JSON(400, response.NewRespone(errcode.GetSessionInfoErr, "获取session信息错误", nil))
+		return
+	}
+	res := GetUserASessionInfoRes{}
+	res.ContentList = make([]GetUserASessionInfoStructRes, 0)
+	for _, v := range list {
+		sendUser, err := biz.FileServerGetUserInfo(context.Background(), v.SendUserUuid)
+		if err != nil {
+			c.JSON(500, response.NewRespone(errcode.GetSessionAllErr, "获取用户session错误1", err))
+			return
+		}
+		ToUser, err := biz.FileServerGetUserInfo(context.Background(), v.ToUserUuid)
+		if err != nil {
+			c.JSON(500, response.NewRespone(errcode.GetSessionAllErr, "获取用户session错误2", err))
+			return
+		}
+		res.ContentList = append(res.ContentList, GetUserASessionInfoStructRes{
+			Id:             v.Id,
+			SessionUuid:    v.SessionUuid,
+			SendUser:       *sendUser,
+			ToUser:         *ToUser,
+			MessageType:    v.MessageType,
+			MessageContent: v.MessageContent,
+			CreatedAt:      v.CreatedAt.String(),
+			UpdatedAt:      v.UpdatedAt.String(),
+		})
+	}
+	c.JSON(200, response.NewRespone(sucesscode.Success, "获取session信息成功", res))
+}
+
+func Read(conn *websocket.Conn, sendKey, toKey string) {
 	for {
 		conn.PongHandler() //心跳？
 		sendMsg := domain.ImSendMsg{}
@@ -405,8 +552,20 @@ func Read(conn *websocket.Conn, imChannelMap *sync.Map, sendKey, toKey string) {
 		err := conn.ReadJSON(&sendMsg) // 读取json格式，如果不是json格式，会报错
 		fmt.Println(sendMsg)
 		if err != nil {
-			log.Logger.Error("im read err:", err)
+			log.Logger.Error("im read err1:", err)
 			break
+		}
+		//如果是文件 那么内容是hash，那么存储一个结构体包含发送者
+		if sendMsg.MessageType == 1 {
+			fileInfo := domain.ImSessionFileContent{}
+			json.Unmarshal([]byte(sendMsg.Message), &fileInfo)
+			fileContent := domain.ImSessionFileContent{
+				FileHash:   fileInfo.FileHash,
+				FileName:   fileInfo.FileName,
+				FileSender: sendMsg.SendUserUuid,
+			}
+			fileContentJson, _ := json.Marshal(fileContent)
+			sendMsg.Message = string(fileContentJson)
 		}
 		//保存到mysql
 		msg := domain.ImSessionContent{
@@ -416,28 +575,32 @@ func Read(conn *websocket.Conn, imChannelMap *sync.Map, sendKey, toKey string) {
 			MessageType:    sendMsg.MessageType,
 			MessageContent: sendMsg.Message,
 		}
-		err = biz.SaveASessionContent(context.Background(), msg)
+		SessionContentId, err := biz.SaveASessionContent(context.Background(), msg)
 		if err != nil {
-			log.Logger.Error("im read err:", err)
+			log.Logger.Error("im read err2:", err)
 			break
 		}
 		//刷新session的更新事件
 		err = biz.UpdateSessionUpdateTime(context.Background(), msg.SessionUuid)
 		if err != nil {
-			log.Logger.Error("im read err:", err)
+			log.Logger.Error("im read err3:", err)
 			break
 		}
+		sendMsg.SessionContentId = SessionContentId
 		//写入channel进行通知
 		toChan := domain.GetKey(sendMsg.SessionUuid + sendMsg.ToUserUuid)
-		toChan <- sendMsg
+		if toChan != nil { //因为可能此时对方连接已经关闭 给一个nil channel发送数据会造成永久的阻塞
+			toChan <- sendMsg
+		}
+
+		fmt.Println("gg", sendMsg)
 	}
-	//删除channel
+	//删除channel 只删除自己的channel 否则可能对方还在就把对方的channel删了
 	domain.DeleteKey(sendKey)
-	domain.DeleteKey(toKey)
 	_ = conn.Close()
 }
 
-func Write(conn *websocket.Conn, imChannelMap *sync.Map, reciveKey string) {
+func Write(conn *websocket.Conn, reciveKey string) {
 	defer func() {
 		_ = conn.Close()
 	}()
@@ -454,4 +617,25 @@ func Write(conn *websocket.Conn, imChannelMap *sync.Map, reciveKey string) {
 		_ = conn.WriteMessage(websocket.TextMessage, msg)
 	}
 
+}
+
+type IsSessionExitRes struct {
+	IsExist     bool   `json:"is_exist"`
+	SessionUuid string `json:"session_uuid"`
+}
+
+func IsSessionExit(c *gin.Context) {
+	req := IsSessionExitReq{}
+	err := c.ShouldBind(&req)
+	if err != nil {
+		c.JSON(400, response.NewRespone(errcode.ValidationFaild, "参数错误", nil))
+		return
+	}
+	session, exist, err := biz.IsSeesionExist(context.Background(), req.UserAUuid, req.UserBUuid)
+	if err != nil {
+		c.JSON(400, response.NewRespone(errcode.GetSessionInfoErr, "获取session信息错误", nil))
+		return
+	}
+	res := IsSessionExitRes{IsExist: exist, SessionUuid: session.SessionUuid}
+	c.JSON(200, response.NewRespone(sucesscode.Success, "获取session信息成功", res))
 }

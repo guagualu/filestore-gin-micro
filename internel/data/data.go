@@ -61,11 +61,12 @@ func NewDB(conf conf.Conf) *gorm.DB {
 		panic("failed to connect database")
 	}
 	if err = db.AutoMigrate(
-	//User{},
-	//File{},
-	//UserFile{},
-	//imSession{},
-	//imSessionContent{},
+		//User{},
+		//File{},
+		//UserFile{},
+		//imSession{},
+		//imSessionContent{},
+		Friends{},
 	); nil != err {
 		panic("failed auto migrate")
 	}
@@ -78,6 +79,7 @@ func NewRedis(conf conf.Conf) *redis.Pool {
 		MaxIdle:     10,
 		MaxActive:   20,
 		IdleTimeout: conf.RedisConfig.DialTimeout,
+		Wait:        true,
 		Dial: func() (redis.Conn, error) {
 			c, err := redis.Dial("tcp", conf.RedisConfig.Addr, redis.DialPassword(conf.RedisConfig.Password), redis.DialDatabase(int(conf.RedisConfig.Db)), redis.DialReadTimeout(time.Second*5), redis.DialConnectTimeout(5*time.Second))
 			if nil != err {
@@ -144,6 +146,7 @@ func SetMutex(uuid string, ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	defer conn.Close()
 	// uuid 以及 超时时间
 	res, err := redis.String(lua.Do(conn, redisLock, uuid, 1500))
 	if err != nil {
@@ -179,6 +182,7 @@ func DeleteMutex(uuid string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	defer conn.Close()
 	// uuid 以及 超时时间
 	res, err := redis.Int(lua.Do(conn, redisLock, uuid))
 	if err != nil {

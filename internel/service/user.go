@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fileStore/internel/biz"
+	"fileStore/internel/domain"
 	"fileStore/internel/pkg/code/errcode"
 	"fileStore/internel/pkg/code/sucesscode"
 	"fileStore/internel/pkg/encoding"
@@ -28,6 +29,19 @@ type signInReq struct {
 }
 type userInfoReq struct {
 	Uuid string `form:"uuid" uri:"uuid" json:"uuid" binding:"required"`
+}
+
+type AddFriendReq struct {
+	UserAMobile string `form:"user_a_mobile" json:"user_a_mobile" binding:"required"`
+	UserBMobile string `form:"user_b_mobile" json:"user_b_mobile" binding:"required"`
+}
+
+type GetFriendsReq struct {
+	UserMobile string `form:"user_mobile" json:"user_mobile" binding:"required"`
+}
+
+type GetFriendsRes struct {
+	FriendsInfos []domain.User `json:"friends_infos"`
 }
 
 func SignUp(c *gin.Context) {
@@ -95,5 +109,43 @@ func GetUserInfo(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, response.NewRespone(sucesscode.Success, "登录成功", user))
+	return
+}
+
+func AddFriend(c *gin.Context) {
+	//1、解析请求参数
+	var req AddFriendReq
+	err := c.ShouldBind(&req)
+	if err != nil {
+		c.JSON(400, response.NewRespone(errcode.ValidationFaild, "参数校验失败", nil))
+		log.Logger.Error("参数校验失败:", err)
+		return
+	}
+	err = biz.AddFriend(context.Background(), req.UserAMobile, req.UserBMobile)
+	if err != nil {
+		c.JSON(400, response.NewRespone(errcode.AddFriendErr, "添加失败", nil))
+		return
+	}
+	c.JSON(http.StatusOK, response.NewRespone(sucesscode.Success, "添加成功", nil))
+	return
+}
+
+func GetFriends(c *gin.Context) {
+	//1、解析请求参数
+	var req GetFriendsReq
+	err := c.ShouldBind(&req)
+	if err != nil {
+		c.JSON(400, response.NewRespone(errcode.ValidationFaild, "参数校验失败", nil))
+		log.Logger.Error("参数校验失败:", err)
+		return
+	}
+	friends, err := biz.GetUserFriends(context.Background(), req.UserMobile)
+	if err != nil {
+		c.JSON(400, response.NewRespone(errcode.GetFriendsErr, "获取好友失败", nil))
+		return
+	}
+	res := GetFriendsRes{}
+	res.FriendsInfos = friends
+	c.JSON(http.StatusOK, response.NewRespone(sucesscode.Success, "获取好友成功", res))
 	return
 }
