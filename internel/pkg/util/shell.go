@@ -24,6 +24,7 @@ func ExecLinuxShell(s string) (string, error) {
 	return result.String(), err
 }
 
+// 原理：1、程序创建一个sh文件 2、需要git自带的 git bash，并设置为bash环境变量 3、执行这个shell程序 执行文件合并命令
 func ExecWinShell(s string, shText string) (string, string, error) {
 	// 创建文件
 	file, err := os.Create("merge.sh")

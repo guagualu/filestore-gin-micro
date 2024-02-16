@@ -201,8 +201,8 @@ func FileMpUploadMerge(uploadId, fileHash string) (string, error) {
 	srcPath := conf.GetConfig().LocalMpStore + "/" + uploadId
 	destPath := "../../tmp/" + fileHash
 	cmd := fmt.Sprintf("cd %s && ls | sort -n | xargs cat > %s", srcPath, destPath)
-	//_, err := util.ExecLinuxShell(cmd)
-	_, _, err := util.ExecWinShell("merge.sh", cmd)
+	//_, err := util.ExecLinuxShell(cmd)  linux使用
+	_, _, err := util.ExecWinShell("merge.sh", cmd) //windows系统使用
 	if err != nil {
 		log.Logger.Error("分块文件合并失败")
 		return "", err
