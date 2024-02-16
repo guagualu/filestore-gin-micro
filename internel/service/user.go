@@ -27,6 +27,11 @@ type signInReq struct {
 	Mobile       string `form:"mobile" uri:"mobile" json:"mobile" binding:"required"`
 	UserPassword string `form:"user_password" uri:"user_password" json:"user_password" binding:"required"`
 }
+
+type signInRes struct {
+	Token    string `form:"token" uri:"token" json:"token" `
+	UserUuid string `form:"user_uuid" uri:"user_uuid" json:"user_uuid"`
+}
 type userInfoReq struct {
 	Uuid string `form:"uuid" uri:"uuid" json:"uuid" binding:"required"`
 }
@@ -89,7 +94,10 @@ func SignIn(c *gin.Context) {
 		return
 	}
 	//4、上传token 和成功信息(可以前端实现)
-	c.JSON(http.StatusOK, response.NewRespone(sucesscode.Success, "登录成功", token))
+	c.JSON(http.StatusOK, response.NewRespone(sucesscode.Success, "登录成功", signInRes{
+		Token:    token,
+		UserUuid: u.Uuid,
+	}))
 	return
 
 }

@@ -40,9 +40,9 @@ var once sync.Once
 var config Conf
 
 func init() {
-	viper.SetConfigName("Config") // 配置文件名
-	viper.SetConfigType("yaml")   // 配置文件类型
-	viper.AddConfigPath("./conf") // 配置文件路径
+	viper.SetConfigName("ConfigLocal") // 配置文件名
+	viper.SetConfigType("yaml")        // 配置文件类型
+	viper.AddConfigPath("./conf")      // 配置文件路径
 
 	err := viper.ReadInConfig() // 读取配置文件
 	if err != nil {
