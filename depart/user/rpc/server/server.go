@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fileStore/conf"
 	pb "fileStore/depart/user/proto"
 	"fileStore/depart/user/rpc/server/handle"
 	etcdServe "fileStore/internel/middleware/etcd/server"
@@ -21,7 +22,7 @@ func RpcServer() {
 	//etcd 服务发现
 	registryConf := etcdServe.RegisterConfig{
 		Config: clientv3.Config{ //etcd服务器相关配置
-			Endpoints:            []string{"47.109.159.227:2379"},
+			Endpoints:            []string{conf.GetConfig().EtcdAddr},
 			DialTimeout:          time.Duration(3) * time.Second,
 			DialKeepAliveTime:    time.Duration(4) * time.Second,
 			DialKeepAliveTimeout: time.Duration(5) * time.Second,

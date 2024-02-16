@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fileStore/conf"
 	filePb "fileStore/depart/file/proto"
 	userFilePb "fileStore/depart/user-file/proto"
 	userPb "fileStore/depart/user/proto"
@@ -18,7 +19,7 @@ var (
 
 func GetUserClient() userPb.UserServiceClient {
 	once.Do(func() {
-		userConn, err := etcdClient.NewConnection("47.109.159.227:2379", 10000, "user_server")
+		userConn, err := etcdClient.NewConnection(conf.GetConfig().EtcdAddr, 10000, "user_server")
 		if err != nil {
 			fmt.Println("userConn err:", err)
 			return
@@ -30,7 +31,7 @@ func GetUserClient() userPb.UserServiceClient {
 
 func GetFileClient() filePb.FileServiceClient {
 	once.Do(func() {
-		fileConn, err := etcdClient.NewConnection("47.109.159.227:2379", 10000, "file_server")
+		fileConn, err := etcdClient.NewConnection(conf.GetConfig().EtcdAddr, 10000, "file_server")
 		if err != nil {
 			fmt.Println("fileConn err:", err)
 			return
@@ -42,7 +43,7 @@ func GetFileClient() filePb.FileServiceClient {
 
 func GetUserFileClient() userFilePb.UserFileServiceClient {
 	once.Do(func() {
-		userFileConn, err := etcdClient.NewConnection("47.109.159.227:2379", 10000, "user_file_server")
+		userFileConn, err := etcdClient.NewConnection(conf.GetConfig().EtcdAddr, 10000, "user_file_server")
 		if err != nil {
 			fmt.Println("fileConn err:", err)
 			return

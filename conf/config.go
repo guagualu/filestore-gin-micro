@@ -33,6 +33,7 @@ type Conf struct {
 	MqUploadQueue        string
 	MqUploadKey          string
 	MqAddr               string
+	EtcdAddr             string
 }
 
 var once sync.Once
@@ -84,6 +85,7 @@ func GetConfig() Conf {
 			MqUploadQueue:        viper.GetString("mqUploadQueue"),
 			MqUploadKey:          viper.GetString("mqUploadKey"),
 			MqAddr:               viper.GetString("mqAddr"),
+			EtcdAddr:             viper.GetString("etcdAddr"),
 		}
 	})
 	return config
