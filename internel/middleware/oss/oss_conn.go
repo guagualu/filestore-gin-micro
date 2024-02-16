@@ -1,8 +1,8 @@
 package oss
 
 import (
+	"fileStore/conf"
 	"fmt"
-
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 )
 
@@ -13,8 +13,8 @@ func Client() *oss.Client {
 	if ossCli != nil {
 		return ossCli
 	}
-	ossCli, err := oss.New("oss-cn-chengdu.aliyuncs.com",
-		"LTAI5tPDgNhMFBo2BSvEdEcr", "8ixhBPsARwQtljRN4LcdaZu9IXlMbg")
+	ossCli, err := oss.New(conf.GetConfig().OssEndpoint,
+		conf.GetConfig().OssAccessKeyId, conf.GetConfig().OssAccessKeySecret)
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil

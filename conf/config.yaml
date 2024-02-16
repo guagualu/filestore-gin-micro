@@ -1,0 +1,24 @@
+mysql:
+  user-resource:  #user服务对应的mysql地址
+  file-resource: #file服务对应的mysql地址
+  user-file-resource: #user-file服务对应的mysql地址
+redis:
+  addr: #redis地址
+  db:  #redis使用的数据库
+  password: #redis密码
+  read_timeout: 0.2
+  write_timeout: 0.2
+  dial_timeout: 0.2
+local-store: ./static/tmp #完整文件存储地址
+local-mp-store: ./static/mp #分块文件存储地址
+user-service-name : user-server  #用于服务发现的服务名
+file-service-name : file-server  #用于服务发现的服务名
+user-file-service-name : user-file-server #用于服务发现的服务名
+dtmServer : #dtm地址
+mqAddr : #rabbitmq地址
+mqUploadExchangeName : filestore-oss #rabbitmq的文件上传交换器name
+mqUploadQueue : filestore-channel-oss #rabbitmq的文件上传队列name
+mqUploadKey : oss #rabbitmq的文件上传routingkey
+ossEndpoint : #oss地址
+ossAccessKeyId : #oss key
+ossAccessKeySecret : #oss secret
